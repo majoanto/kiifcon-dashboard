@@ -1,0 +1,272 @@
+
+<h2 class="sr-only">KIIFCON Pinarayi Educational Hub — Management Dashboard covering phase progress, slippage, intervention alerts, and billing status.</h2>
+
+<style>
+:root{--amber:#BA7517;--amber-bg:#FAEEDA;--amber-txt:#633806;--red:#E24B4A;--red-bg:#FCEBEB;--red-txt:#501313;--green:#3B6D11;--green-bg:#EAF3DE;--green-txt:#173404;--blue:#185FA5;--blue-bg:#E6F1FB;--blue-txt:#042C53;--gray-bg:#F1EFE8;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem;}
+.kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:14px 16px;}
+.kpi-label{font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.kpi-val{font-size:22px;font-weight:500;color:var(--color-text-primary);}
+.kpi-sub{font-size:12px;color:var(--color-text-secondary);margin-top:3px;}
+.section-head{font-size:13px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.08em;margin:1.5rem 0 .75rem;padding-bottom:6px;border-bottom:.5px solid var(--color-border-tertiary);}
+.phase-row{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:.5px solid var(--color-border-tertiary);}
+.phase-row:last-child{border-bottom:none;}
+.dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+.dot-done{background:var(--green-bg);color:var(--green);}
+.dot-prog{background:var(--amber-bg);color:var(--amber);}
+.dot-wait{background:var(--color-background-secondary);color:var(--color-text-tertiary);border:.5px solid var(--color-border-secondary);}
+.dot-alert{background:var(--red-bg);color:var(--red);}
+.phase-name{font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.3;}
+.phase-dates{font-size:11px;color:var(--color-text-secondary);margin-top:2px;}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap;}
+.badge-done{background:var(--green-bg);color:var(--green-txt);}
+.badge-prog{background:var(--amber-bg);color:var(--amber-txt);}
+.badge-wait{background:var(--color-background-secondary);color:var(--color-text-secondary);border:.5px solid var(--color-border-secondary);}
+.badge-overdue{background:var(--red-bg);color:var(--red-txt);}
+.badge-critical{background:var(--red-bg);color:var(--red-txt);}
+.alert-card{border-left:3px solid var(--red);background:var(--color-background-primary);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;border:.5px solid var(--color-border-tertiary);border-left:3px solid var(--red);padding:12px 14px;margin-bottom:10px;}
+.alert-card.warn{border-left-color:var(--amber);}
+.alert-title{font-size:13px;font-weight:500;color:var(--color-text-primary);}
+.alert-body{font-size:12px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;}
+.alert-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;display:inline-block;margin-bottom:6px;}
+.tag-red{background:var(--red-bg);color:var(--red-txt);}
+.tag-amb{background:var(--amber-bg);color:var(--amber-txt);}
+.intv-card{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;}
+.intv-num{width:28px;height:28px;border-radius:50%;background:var(--red-bg);color:var(--red-txt);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.intv-num.amb{background:var(--amber-bg);color:var(--amber-txt);}
+.bar-outer{height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden;margin-top:6px;}
+.bar-fill{height:100%;border-radius:4px;}
+.bill-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary);font-size:13px;}
+.bill-row:last-child{border-bottom:none;}
+.bill-status{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;}
+</style>
+
+<div style="padding:.5rem 0 0;">
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap;">
+  <div>
+    <div style="font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Management Dashboard</div>
+    <div style="font-size:17px;font-weight:500;color:var(--color-text-primary);line-height:1.3;">PMC — Educational Hub, Pinarayi, Kannur</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px;">Client: KITFRA &nbsp;·&nbsp; Contract: ₹3.98 Cr &nbsp;·&nbsp; As of May 2026</div>
+  </div>
+  <span class="badge badge-overdue" style="font-size:11px;padding:4px 12px;border-radius:6px;align-self:flex-start;">⚠ Handover in 22 days</span>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="kpi-label">Overall completion</div>
+    <div class="kpi-val">~65%</div>
+    <div class="kpi-sub">5 of 9 phases done</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Billed to date</div>
+    <div class="kpi-val">₹78.3 L</div>
+    <div class="kpi-sub">19.7% of contract</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Collected</div>
+    <div class="kpi-val">₹38.4 L</div>
+    <div class="kpi-sub">3 RABs cleared</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Outstanding</div>
+    <div class="kpi-val" style="color:var(--red);">₹39.9 L</div>
+    <div class="kpi-sub">RAB 04 + RAB 05</div>
+  </div>
+</div>
+
+<div class="section-head"><i class="ti ti-map-pin" aria-hidden="true" style="font-size:13px;vertical-align:-1px;margin-right:6px;"></i>Where are we on each phase?</div>
+
+<div>
+  <div class="phase-row">
+    <div class="dot dot-done"><i class="ti ti-check" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Tendering &amp; award of work</div><div class="phase-dates">Feb 2024 → Mar 2024</div></div>
+    <span class="badge badge-done">Completed</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-done"><i class="ti ti-check" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Site handover</div><div class="phase-dates">Jun 2024</div></div>
+    <span class="badge badge-done">Completed</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-done"><i class="ti ti-check" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Mobilization</div><div class="phase-dates">Jun 2024</div></div>
+    <span class="badge badge-done">Completed</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-alert"><i class="ti ti-alert-triangle" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">GFC drawings</div><div class="phase-dates">Planned end: Oct 2024 &nbsp;·&nbsp; <span style="color:var(--red);">~18 months overdue</span></div></div>
+    <span class="badge badge-overdue">In progress</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-done"><i class="ti ti-check" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Scheme approval (Fire &amp; Electrical)</div><div class="phase-dates">Jun 2024 → Nov 2025</div></div>
+    <span class="badge badge-done">Completed</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-done"><i class="ti ti-check" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Site clearance</div><div class="phase-dates">Jun 2024 → Jun 2025</div></div>
+    <span class="badge badge-done">Completed</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-prog"><i class="ti ti-clock" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Construction works</div><div class="phase-dates">Jun 2024 → <span style="color:var(--amber);">Deadline: 23 May 2026 (17 days left)</span></div></div>
+    <span class="badge badge-prog">In progress</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-alert"><i class="ti ti-alert-triangle" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Inspection &amp; testing</div><div class="phase-dates">Planned start: 14 May 2026 — <span style="color:var(--red);">Not started</span></div></div>
+    <span class="badge badge-overdue">Not started</span>
+  </div>
+  <div class="phase-row">
+    <div class="dot dot-alert"><i class="ti ti-alert-triangle" style="font-size:10px;" aria-hidden="true"></i></div>
+    <div><div class="phase-name">Handover</div><div class="phase-dates">Planned: 28 May 2026 — <span style="color:var(--red);">Not started</span></div></div>
+    <span class="badge badge-overdue">Not started</span>
+  </div>
+</div>
+
+<div class="section-head" style="margin-top:1.8rem;"><i class="ti ti-trending-down" aria-hidden="true" style="font-size:13px;vertical-align:-1px;margin-right:6px;"></i>What is slipping — and why?</div>
+
+<div class="alert-card">
+  <span class="alert-tag tag-red">Critical · Technical</span>
+  <div class="alert-title">GFC drawings still pending — 18+ months past planned completion</div>
+  <div class="alert-body">Planned completion was Oct 2024. Recurring delays from design consultant (IHRD, GH, Canteen, Polytechnic, ITI/KIHM, CSA/Auditorium buildings). Multiple scope changes (canteen kitchen layout, structural column revisions) required revised drawings, compounding the delay. Phase remains open.</div>
+</div>
+
+<div class="alert-card">
+  <span class="alert-tag tag-red">Critical · Schedule</span>
+  <div class="alert-title">Inspection &amp; testing not yet mobilised — window opens in 8 days</div>
+  <div class="alert-body">Planned start 14 May 2026. With construction completion targeted 23 May 2026, there is a critical overlap risk — inspection cannot commence if construction site is not handed over.</div>
+</div>
+
+<div class="alert-card warn">
+  <span class="alert-tag tag-amb">High · Financial</span>
+  <div class="alert-title">₹39.9 L outstanding across RAB 04 &amp; RAB 05 with no collection date set</div>
+  <div class="alert-body">RAB 04 (₹19.7 L, due Mar 2026) and RAB 05 (₹20.1 L, due Apr 2026) are both sent but uncollected. RAB 05 is under bill scrutiny. Combined outstanding = 50.9% of all billed value.</div>
+</div>
+
+<div class="alert-card warn">
+  <span class="alert-tag tag-amb">High · Scope</span>
+  <div class="alert-title">External utility / master plan revisions caused downstream delays</div>
+  <div class="alert-body">Conflicts in MEP services, stormwater alignments and hydropneumatic system changes needed TS committee approval. Resolved but contributed to timeline extension across construction phase.</div>
+</div>
+
+<div class="section-head" style="margin-top:1.8rem;"><i class="ti ti-shield-exclamation" aria-hidden="true" style="font-size:13px;vertical-align:-1px;margin-right:6px;"></i>Where is management intervention needed?</div>
+
+<div class="intv-card">
+  <div class="intv-num">1</div>
+  <div>
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);">Expedite collection of RAB 04 &amp; RAB 05 immediately</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;">₹39.9 L is locked. RAB 05 bill scrutiny should be resolved urgently — engage KITFRA's accounts team directly. Set a deadline for RAB 04 payment (overdue since Mar 2026).</div>
+  </div>
+</div>
+
+<div class="intv-card">
+  <div class="intv-num">2</div>
+  <div>
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);">Convene emergency review: can handover date (28 May) be met?</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;">Construction deadline is 23 May. Inspection &amp; testing has not started. Handover is 5 days later. A realistic plan — or a formally agreed date extension — must be in place within the week.</div>
+  </div>
+</div>
+
+<div class="intv-card">
+  <div class="intv-num">3</div>
+  <div>
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);">Close out GFC drawings phase formally</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;">Phase is marked in_progress without an actual end date despite most buildings being under construction. Formally close this phase or document remaining open items to give an accurate project completion picture.</div>
+  </div>
+</div>
+
+<div class="intv-card">
+  <div class="intv-num amb">4</div>
+  <div>
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);">Mobilise inspection team before construction completes</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;">Assign personnel and equipment for Inspection &amp; Testing (Phase 8) now. Any delay here directly impacts the handover certificate and billing trigger.</div>
+  </div>
+</div>
+
+<div class="section-head" style="margin-top:1.8rem;"><i class="ti ti-receipt" aria-hidden="true" style="font-size:13px;vertical-align:-1px;margin-right:6px;"></i>How does progress translate into billing?</div>
+
+<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
+  <div class="kpi">
+    <div class="kpi-label">Contract value</div>
+    <div class="kpi-val" style="font-size:18px;">₹3.98 Cr</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total invoiced</div>
+    <div class="kpi-val" style="font-size:18px;">₹78.3 L</div>
+    <div class="kpi-sub">19.7% of contract</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Collected</div>
+    <div class="kpi-val" style="font-size:18px;color:var(--green);">₹38.4 L</div>
+    <div class="kpi-sub">49.1% of billed</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Outstanding</div>
+    <div class="kpi-val" style="font-size:18px;color:var(--red);">₹39.9 L</div>
+    <div class="kpi-sub">50.9% of billed</div>
+  </div>
+</div>
+
+<div style="margin-bottom:12px;">
+  <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Collected vs outstanding (% of total billed)</div>
+  <div style="display:flex;height:18px;border-radius:4px;overflow:hidden;">
+    <div style="width:49.1%;background:#3B6D11;"></div>
+    <div style="width:50.9%;background:#E24B4A;"></div>
+  </div>
+  <div style="display:flex;gap:16px;margin-top:6px;font-size:11px;color:var(--color-text-secondary);">
+    <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#3B6D11;margin-right:4px;"></span>Collected 49%</span>
+    <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#E24B4A;margin-right:4px;"></span>Outstanding 51%</span>
+  </div>
+</div>
+
+<div style="position:relative;width:100%;height:220px;margin:1rem 0 .5rem;">
+  <canvas id="billingChart" role="img" aria-label="Bar chart showing five RAB invoices. RAB 01-03 are paid at 10-19 L each. RAB 04 and 05 are outstanding at ~20 L each.">RAB 01: ₹10.2L Paid, RAB 02: ₹11.9L Paid, RAB 03: ₹16.4L Paid, RAB 04: ₹19.7L Outstanding, RAB 05: ₹20.1L Outstanding.</canvas>
+</div>
+
+<div style="margin-top:.5rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:500;color:var(--color-text-secondary);padding-bottom:6px;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:4px;">
+    <span>Invoice</span><span>Date</span><span>Amount (₹ L)</span><span>Status</span>
+  </div>
+  <div class="bill-row"><span>RAB 01</span><span style="color:var(--color-text-secondary);">Mar 2025</span><span>10.2</span><span class="bill-status badge-done">Paid</span></div>
+  <div class="bill-row"><span>RAB 02</span><span style="color:var(--color-text-secondary);">Jul 2025</span><span>11.9</span><span class="bill-status badge-done">Paid</span></div>
+  <div class="bill-row"><span>RAB 03</span><span style="color:var(--color-text-secondary);">Nov 2025</span><span>16.4</span><span class="bill-status badge-done">Paid</span></div>
+  <div class="bill-row"><span>RAB 04</span><span style="color:var(--color-text-secondary);">Feb 2026</span><span>19.7</span><span class="bill-status badge-overdue">Overdue</span></div>
+  <div class="bill-row"><span>RAB 05</span><span style="color:var(--color-text-secondary);">Mar 2026</span><span>20.1</span><span class="bill-status badge-prog">Scrutiny</span></div>
+</div>
+
+<div style="background:var(--blue-bg);border-radius:var(--border-radius-md);padding:12px 14px;margin-top:1rem;font-size:12px;color:var(--blue-txt);line-height:1.6;">
+  <strong>Billing gap note:</strong> ₹3.98 Cr contract with only ₹78.3 L invoiced (19.7%) suggests billing is significantly behind physical progress. With handover in ~3 weeks, remaining billing of ~₹3.20 Cr must be planned and submitted urgently — likely requires RAB 06 onwards to be raised before project closure.
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+new Chart(document.getElementById('billingChart'),{
+  type:'bar',
+  data:{
+    labels:['RAB 01','RAB 02','RAB 03','RAB 04','RAB 05'],
+    datasets:[{
+      label:'Amount (₹ L)',
+      data:[10.16,11.89,16.37,19.72,20.14],
+      backgroundColor:['#3B6D11','#3B6D11','#3B6D11','#E24B4A','#E24B4A'],
+      borderRadius:4,
+      borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>'₹ '+ctx.raw.toFixed(2)+' L'}}
+    },
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:12}}},
+      y:{grid:{color:'rgba(128,128,128,0.1)'},ticks:{callback:v=>'₹'+v+'L',font:{size:11}},title:{display:true,text:'Amount (₹ Lakhs)',font:{size:11}}}
+    }
+  }
+});
+</script>
