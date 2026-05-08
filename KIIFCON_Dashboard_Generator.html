@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KIIFCON · Dashboard Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f0f4f8;--bg1:#fff;--bg2:#fff;--bg3:#f8fafc;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --text:#1e293b;--muted:#64748b;--dim:#94a3b8;
+  --cyan:#1d6fb8;--cyan2:#1558a0;--cyan-glow:rgba(29,111,184,.1);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,.08);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,.08);
+  --gold:#b45309;
+  --r:10px;
+  --font-display:'Plus Jakarta Sans',sans-serif;
+  --font-mono:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(29,111,184,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(29,111,184,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+
+/* ── UPLOAD SCREEN ── */
+#uploadScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px;position:relative;z-index:1}
+.upload-card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:56px 64px;max-width:560px;width:100%;text-align:center;box-shadow:0 4px 32px rgba(0,0,0,.08)}
+.upload-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--cyan),var(--cyan2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:26px;color:#fff;margin:0 auto 28px}
+.upload-card h1{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--text);margin-bottom:10px}
+.upload-card p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:32px}
+.drop-zone{border:2px dashed var(--border2);border-radius:14px;padding:40px 32px;cursor:pointer;transition:all .25s;background:var(--bg3);position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:var(--cyan-glow)}
+.drop-icon{font-size:40px;margin-bottom:14px;display:block}
+.drop-text{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px}
+.drop-sub{font-size:11px;color:var(--muted)}
+#fileInput{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-btn{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:12px 28px;background:var(--cyan);color:#fff;border:none;border-radius:8px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.upload-btn:hover{background:var(--cyan2)}
+.upload-badge{display:inline-flex;align-items:center;gap:6px;margin-top:20px;padding:8px 16px;background:rgba(29,111,184,.08);border:1px solid rgba(29,111,184,.2);border-radius:6px;font-size:11px;color:var(--cyan2)}
+#statusMsg{margin-top:20px;font-size:12px;color:var(--muted);min-height:20px}
+#progressBar{width:100%;height:4px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;display:none}
+#progressFill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan2),var(--cyan));border-radius:2px;transition:width .4s}
+
+/* ── DASHBOARD ── */
+#dashboard{display:none}
+header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 32px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;height:56px;gap:16px;flex-wrap:wrap}
+.hdr-brand{display:flex;align-items:center;gap:12px}
+.hdr-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--cyan),var(--cyan2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:14px;color:#fff;flex-shrink:0}
+.hdr-title{font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--text);line-height:1.2}
+.hdr-sub{font-size:11px;color:var(--muted);letter-spacing:.04em}
+.hdr-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.countdown{background:var(--red-bg);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:6px 12px;text-align:center}
+.countdown-num{font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--red);line-height:1}
+.countdown-label{font-size:9px;color:var(--red);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 6px #16a34a;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.reset-btn{padding:6px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-family:var(--font-display);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+.reset-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+nav{background:var(--bg1);border-bottom:1px solid var(--border);padding:0 32px;overflow-x:auto;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.nav-tabs{display:flex;gap:0;white-space:nowrap}
+.tab-btn{padding:14px 22px;font-family:var(--font-display);font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);font-weight:600}
+.tab-btn .badge{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:10px;font-size:9px;background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.tab-btn .badge.ok{background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.3)}
+main{padding:28px 32px;max-width:1400px;margin:0 auto;position:relative;z-index:1}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0}
+.kpi.c::after{background:var(--cyan)}.kpi.a::after{background:var(--amber)}.kpi.g::after{background:var(--green)}.kpi.r::after{background:var(--red)}.kpi.gold::after{background:var(--gold)}
+.kpi-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.kpi-val{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;color:var(--text)}
+.kpi-val.red{color:var(--red)}.kpi-val.green{color:var(--green)}.kpi-val.amber{color:var(--amber)}.kpi-val.cyan{color:var(--cyan)}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:6px}
+.kpi-delta{position:absolute;top:16px;right:16px;font-size:10px;padding:2px 8px;border-radius:4px}
+.kpi-delta.warn{background:var(--red-bg);color:var(--red)}
+.kpi-delta.ok{background:var(--green-bg);color:var(--green)}
+.two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-bottom:20px}
+.full{margin-bottom:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card-title{font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--cyan);flex-shrink:0}
+.phase-item{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--border)}
+.phase-item:last-child{border-bottom:none}
+.ph-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:2px}
+.ph-done{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.ph-prog{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.ph-wait{background:var(--bg3);color:var(--dim);border:1px solid var(--border)}
+.ph-crit{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.ph-name{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+.ph-date{font-size:10px;color:var(--muted);margin-top:3px}
+.ph-warn{font-size:10px;color:var(--red);margin-top:3px}
+.ph-warn.amber{color:var(--amber)}
+.chip{display:inline-block;font-size:9px;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.chip-done{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.chip-prog{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.chip-wait{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+.chip-crit{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.prog-outer{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.prog-inner{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.alert{border-left:3px solid var(--red);background:var(--red-bg);border-radius:0 var(--r) var(--r) 0;padding:12px 14px;margin-bottom:10px}
+.alert.warn{border-left-color:var(--amber);background:var(--amber-bg)}
+.alert-tag{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.alert-tag.crit{color:var(--red)}.alert-tag.high{color:var(--amber)}
+.alert-title{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.alert-body{font-size:11px;color:var(--muted);line-height:1.6}
+.intv{display:flex;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;transition:border-color .2s}
+.intv:hover{border-color:var(--cyan)}
+.intv-n{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:var(--font-display)}
+.intv-n.r{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.intv-n.a{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.intv-title{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.intv-body{font-size:11px;color:var(--muted);line-height:1.5}
+.bill-table{width:100%;border-collapse:collapse}
+.bill-table th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.bill-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.bill-table tr:last-child td{border-bottom:none}
+.bill-table tr.warn-row td{background:rgba(239,68,68,.04)}
+.bill-table tr.amb-row td{background:rgba(245,158,11,.04)}
+.amt{font-family:var(--font-display);font-weight:600}
+.amt.red{color:var(--red)}.amt.amber{color:var(--amber)}.amt.green{color:var(--green)}
+.coll-bar{height:28px;display:flex;border-radius:6px;overflow:hidden;margin:12px 0}
+.coll-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+.exp-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.exp-row:last-child{border-bottom:none}
+.exp-name{font-size:12px;color:var(--text)}
+.exp-cat{font-size:10px;color:var(--muted);margin-top:2px}
+.exp-amt{font-family:var(--font-display);font-weight:600;font-size:13px}
+.total-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:2px solid var(--border2);margin-top:6px}
+.sev{font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:12px}
+.sev-crit{background:var(--red-bg);color:var(--red)}.sev-high{background:var(--amber-bg);color:var(--amber)}.sev-med{background:rgba(59,130,246,.08);color:#3b82f6}.sev-low{background:var(--green-bg);color:var(--green)}
+.st-closed{font-size:9px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:12px;font-weight:600}
+.st-open{font-size:9px;background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:12px;font-weight:600}
+.st-prog{font-size:9px;background:var(--amber-bg);color:var(--amber);padding:2px 8px;border-radius:12px;font-weight:600}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.team-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:12px;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.team-card:hover{border-color:var(--cyan);box-shadow:0 2px 8px rgba(29,111,184,.1)}
+.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--cyan2),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.member-name{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text)}
+.member-role{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4}
+.chart-box{position:relative;height:220px}
+.note{background:rgba(29,111,184,.06);border:1px solid rgba(29,111,184,.2);border-radius:var(--r);padding:12px 16px;font-size:11px;color:var(--cyan2);line-height:1.7;margin-top:14px}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+@media(max-width:1024px){.kpi-grid{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}}
+@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}main{padding:16px}.kpi-val{font-size:20px}}
+.tab-panel.active .card{animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}.card:nth-child(4){animation-delay:.18s}
+
+/* AI generating overlay */
+#aiOverlay{display:none;position:fixed;inset:0;background:rgba(240,244,248,.95);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+#aiOverlay.show{display:flex}
+.ai-spinner{width:56px;height:56px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-msg{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--text)}
+.ai-sub{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ── UPLOAD SCREEN ── -->
+<div id="uploadScreen">
+  <div class="upload-card">
+    <div class="upload-logo">K</div>
+    <h1>KIIFCON Dashboard Generator</h1>
+    <p>Upload your project data Excel file and get a live command dashboard — phases, billing, issues, and team — generated instantly.</p>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+      <span class="drop-icon">📊</span>
+      <div class="drop-text">Drop your Excel file here</div>
+      <div class="drop-sub">or click to browse · .xlsx / .xls</div>
+    </div>
+    <div class="upload-badge">⚡ Powered by AI · Data stays in your browser · Never uploaded</div>
+    <div id="statusMsg"></div>
+    <div id="progressBar"><div id="progressFill"></div></div>
+  </div>
+</div>
+
+<!-- ── AI OVERLAY ── -->
+<div id="aiOverlay">
+  <div class="ai-spinner"></div>
+  <div class="ai-msg" id="aiMsg">Reading your data…</div>
+  <div class="ai-sub" id="aiSub">Parsing Excel sheets</div>
+</div>
+
+<!-- ── DASHBOARD (rendered after upload) ── -->
+<div id="dashboard">
+  <header>
+    <div class="hdr-inner">
+      <div class="hdr-brand">
+        <div class="hdr-logo">K</div>
+        <div>
+          <div class="hdr-title" id="hdrTitle">PMC Dashboard</div>
+          <div class="hdr-sub" id="hdrSub">KIIFCON</div>
+        </div>
+      </div>
+      <div class="hdr-right">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
+          <span class="live-dot"></span> Live · <span id="currentDate"></span>
+        </div>
+        <div class="countdown" id="countdownBox" style="display:none">
+          <div class="countdown-num" id="days">—</div>
+          <div class="countdown-label">days to handover</div>
+        </div>
+        <button class="reset-btn" onclick="resetToUpload()">↩ New Upload</button>
+      </div>
+    </div>
+  </header>
+  <nav>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('overview',this)">⬡ Overview</button>
+      <button class="tab-btn" onclick="switchTab('phases',this)">◎ Phases</button>
+      <button class="tab-btn" onclick="switchTab('billing',this)">◈ Billing <span class="badge" id="billingBadge" style="display:none"></span></button>
+      <button class="tab-btn" onclick="switchTab('issues',this)">△ Issues <span class="badge ok" id="issuesBadge" style="display:none"></span></button>
+      <button class="tab-btn" onclick="switchTab('team',this)">◻ Team</button>
+    </div>
+  </nav>
+  <main>
+    <div class="tab-panel active" id="tab-overview">
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="two-col">
+        <div class="card" id="phaseCard"></div>
+        <div id="rightCol"></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-phases">
+      <div class="two-col">
+        <div class="card" id="phaseProgressCard"></div>
+        <div class="card" id="phaseDetailCard"></div>
+      </div>
+      <div class="card full" id="ganttCard"></div>
+    </div>
+    <div class="tab-panel" id="tab-billing">
+      <div class="kpi-grid" id="billingKpi" style="grid-template-columns:repeat(4,1fr)"></div>
+      <div class="two-col">
+        <div class="card" id="invoiceCard"></div>
+        <div id="billingRight"></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-issues">
+      <div class="card full" id="issuesCard"></div>
+    </div>
+    <div class="tab-panel" id="tab-team">
+      <div class="card full" id="teamCard"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── EXCEL SERIAL DATE CONVERSION ──────────────────────────────────
+function excelDateToJS(serial){
+  if(!serial||isNaN(serial)) return null;
+  const d=new Date(Math.round((serial-25569)*864e5));
+  return d;
+}
+function fmtDate(serial){
+  const d=excelDateToJS(serial);
+  if(!d) return '—';
+  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+function fmtINR(n){
+  if(!n||isNaN(n)) return '—';
+  if(n>=1e7) return '₹'+(n/1e7).toFixed(2)+' Cr';
+  if(n>=1e5) return '₹'+(n/1e5).toFixed(1)+' L';
+  return '₹'+Number(n).toLocaleString('en-IN');
+}
+function fmtINRFull(n){
+  if(!n||isNaN(n)) return '—';
+  return '₹'+Number(n).toLocaleString('en-IN');
+}
+
+// ── PARSE EXCEL ───────────────────────────────────────────────────
+function parseExcel(data){
+  const wb=XLSX.read(data,{type:'array'});
+  function sheetRows(name){
+    const ws=wb.Sheets[name];
+    if(!ws) return [];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    // Find header row (first row with more than 2 non-empty cells)
+    let hdrIdx=0;
+    for(let i=0;i<rows.length;i++){
+      if(rows[i].filter(c=>String(c).trim()).length>2){hdrIdx=i;break;}
+    }
+    const headers=rows[hdrIdx].map(h=>String(h).trim());
+    const result=[];
+    for(let i=hdrIdx+1;i<rows.length;i++){
+      const row=rows[i];
+      if(row.every(c=>!String(c).trim())) continue;
+      const obj={};
+      headers.forEach((h,j)=>{obj[h]=row[j];});
+      result.push(obj);
+    }
+    return result;
+  }
+  return {
+    projects: sheetRows('Projects'),
+    users:    sheetRows('Users'),
+    phases:   sheetRows('Phases'),
+    issues:   sheetRows('Issues'),
+    expenses: sheetRows('Expenses'),
+    billing:  sheetRows('Billing_Collection'),
+  };
+}
+
+// ── STATE ─────────────────────────────────────────────────────────
+let D={};
+let _charts={};
+
+// ── UPLOAD HANDLING ───────────────────────────────────────────────
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('fileInput');
+const statusMsg=document.getElementById('statusMsg');
+const progressBar=document.getElementById('progressBar');
+const progressFill=document.getElementById('progressFill');
+
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f) handleFile(f)});
+fileInput.addEventListener('change',e=>{if(e.target.files[0]) handleFile(e.target.files[0])});
+
+function setProgress(pct,msg,sub){
+  progressBar.style.display='block';
+  progressFill.style.width=pct+'%';
+  document.getElementById('aiMsg').textContent=msg;
+  document.getElementById('aiSub').textContent=sub;
+}
+
+async function handleFile(file){
+  if(!file.name.match(/\.xlsx?$/i)){statusMsg.textContent='⚠ Please upload an .xlsx or .xls file';return;}
+  document.getElementById('aiOverlay').classList.add('show');
+  setProgress(10,'Reading Excel…','Parsing workbook sheets');
+  await sleep(300);
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      setProgress(30,'Parsing data…','Extracting projects, phases, billing');
+      await sleep(200);
+      D=parseExcel(new Uint8Array(e.target.result));
+      setProgress(60,'Building dashboard…','Calculating KPIs and alerts');
+      await sleep(300);
+      setProgress(85,'Rendering charts…','Drawing phase timeline and billing charts');
+      await sleep(200);
+      buildDashboard();
+      setProgress(100,'Done!','');
+      await sleep(300);
+      document.getElementById('aiOverlay').classList.remove('show');
+      document.getElementById('uploadScreen').style.display='none';
+      document.getElementById('dashboard').style.display='block';
+      initOverview();
+    }catch(err){
+      document.getElementById('aiOverlay').classList.remove('show');
+      statusMsg.textContent='⚠ Error reading file: '+err.message;
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function resetToUpload(){
+  // destroy charts
+  Object.values(_charts).forEach(c=>{try{c.destroy();}catch(e){}});
+  _charts={};
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('uploadScreen').style.display='flex';
+  document.getElementById('progressBar').style.display='none';
+  document.getElementById('progressFill').style.width='0';
+  document.getElementById('statusMsg').textContent='';
+  fileInput.value='';
+  // reset tab panels
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-overview').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.remove('active');if(i===0)b.classList.add('active');});
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function col(rows,key){
+  // flexible column match
+  if(!rows||!rows.length) return undefined;
+  const k=Object.keys(rows[0]).find(k=>k.trim().replace(/[●○◆\s]+/g,'').toUpperCase()===key.replace(/\s/g,'').toUpperCase());
+  return k;
+}
+function get(row,key){
+  if(!row) return '';
+  const k=col([row],key);
+  return k?row[k]:'';
+}
+// normalize status
+function normStatus(s){
+  s=String(s||'').toLowerCase().replace(/[_\s]/g,'');
+  if(s==='completed'||s==='complete') return 'completed';
+  if(s==='inprogress'||s==='ongoing') return 'inprogress';
+  if(s==='notstarted'||s==='pending') return 'notstarted';
+  if(s==='onhold') return 'onhold';
+  if(s==='cancelled') return 'cancelled';
+  return s;
+}
+function normSev(s){
+  s=String(s||'').toLowerCase();
+  if(s==='critical') return 'critical';
+  if(s==='high') return 'high';
+  if(s==='medium'||s==='med') return 'medium';
+  return 'low';
+}
+
+// ── BUILD DASHBOARD ───────────────────────────────────────────────
+function buildDashboard(){
+  const proj=D.projects[0]||{};
+
+  // Header
+  const pname=get(proj,'PROJECT NAME')||'Project Dashboard';
+  const client=get(proj,'CLIENT NAME')||'';
+  const budget=get(proj,'CONTRACT BUDGET (INR)');
+  document.getElementById('hdrTitle').textContent='PMC · '+pname;
+  document.getElementById('hdrSub').textContent='KIIFCON'+(client?' · Client: '+client:'')+(budget?' · '+fmtINR(budget):'');
+
+  // Countdown to handover (last phase planned end)
+  const lastPhase=D.phases[D.phases.length-1];
+  if(lastPhase){
+    const pe=get(lastPhase,'PLANNED END');
+    const d=excelDateToJS(pe);
+    if(d){
+      const diff=Math.ceil((d-new Date())/(1000*60*60*24));
+      document.getElementById('days').textContent=Math.max(0,diff);
+      document.getElementById('countdownBox').style.display='block';
+    }
+  }
+  document.getElementById('currentDate').textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  // Badges
+  const openIssues=D.issues.filter(r=>normStatus(get(r,'STATUS'))==='open'||normStatus(get(r,'STATUS'))==='inprogress');
+  const ib=document.getElementById('issuesBadge');
+  ib.textContent=D.issues.length; ib.style.display='inline-block';
+  const pendingBills=D.billing.filter(r=>{const s=String(get(r,'BILLING STATUS')||'').toLowerCase();return s==='sent'||s==='overdue';});
+  const bb=document.getElementById('billingBadge');
+  if(pendingBills.length){bb.textContent=pendingBills.length;bb.style.display='inline-block';}
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────
+function initOverview(){
+  buildKPIs();
+  buildPhaseCard();
+  buildAlertsAndActions();
+}
+
+function buildKPIs(){
+  const proj=D.projects[0]||{};
+  const budget=parseFloat(get(proj,'CONTRACT BUDGET (INR)'))||0;
+
+  // Billing totals
+  let totalBilled=0,totalCollected=0,totalOutstanding=0;
+  D.billing.forEach(r=>{
+    totalBilled+=parseFloat(get(r,'INVOICE AMOUNT (INR)'))||0;
+    totalCollected+=parseFloat(get(r,'AMOUNT RECEIVED (INR)'))||0;
+    totalOutstanding+=parseFloat(get(r,'OUTSTANDING (INR)'))||0;
+  });
+  // Expenses
+  let totalExp=0;
+  D.expenses.forEach(r=>{totalExp+=parseFloat(get(r,'AMOUNT (INR)'))||0;});
+
+  // Phase progress
+  const phases=D.phases;
+  const completed=phases.filter(r=>normStatus(get(r,'STATUS'))==='completed').length;
+  const pct=phases.length?Math.round(completed/phases.length*100):0;
+
+  const billedPct=budget?((totalBilled/budget)*100).toFixed(1):0;
+  const cashGap=totalCollected-totalExp;
+  const cashGapSign=cashGap>=0?'+':'';
+
+  const kpiGrid=document.getElementById('kpiGrid');
+  kpiGrid.innerHTML=`
+    <div class="kpi c"><div class="kpi-label">Contract Value</div><div class="kpi-val cyan">${fmtINR(budget)}</div><div class="kpi-sub">${fmtINRFull(budget)}</div></div>
+    <div class="kpi gold"><div class="kpi-label">Total Billed</div><div class="kpi-val">${fmtINR(totalBilled)}</div><div class="kpi-sub">${billedPct}% of contract · ${D.billing.length} invoices</div><div class="kpi-delta ${billedPct<50?'warn':'ok'}">${billedPct<50?'Lagging':'On Track'}</div></div>
+    <div class="kpi g"><div class="kpi-label">Collected</div><div class="kpi-val green">${fmtINR(totalCollected)}</div><div class="kpi-sub">${D.billing.filter(r=>String(get(r,'BILLING STATUS')||'').toLowerCase()==='paid').length} invoices cleared</div><div class="kpi-delta ok">Paid</div></div>
+    <div class="kpi r"><div class="kpi-label">Outstanding</div><div class="kpi-val red">${fmtINR(totalOutstanding)}</div><div class="kpi-sub">${totalBilled?((totalOutstanding/totalBilled)*100).toFixed(1):0}% of billed</div><div class="kpi-delta warn">⚠ Urgent</div></div>
+    <div class="kpi a"><div class="kpi-label">Total Expenses</div><div class="kpi-val amber">${fmtINR(totalExp)}</div><div class="kpi-sub">Cash gap: ${cashGapSign}${fmtINR(Math.abs(cashGap))} vs collections</div><div class="kpi-delta ${cashGap>=0?'ok':'warn'}">${cashGap>=0?'Surplus':'Over'}</div></div>
+  `;
+}
+
+function phaseIcon(st){
+  if(st==='completed') return {cls:'ph-done',txt:'✓'};
+  if(st==='inprogress') return {cls:'ph-prog',txt:'→'};
+  if(st==='overdue') return {cls:'ph-crit',txt:'!'};
+  return {cls:'ph-wait',txt:'○'};
+}
+function phaseChip(st){
+  if(st==='completed') return 'chip-done';
+  if(st==='inprogress') return 'chip-prog';
+  if(st==='overdue') return 'chip-crit';
+  return 'chip-wait';
+}
+function phaseLabel(st){
+  if(st==='completed') return 'Completed';
+  if(st==='inprogress') return 'In Progress';
+  if(st==='overdue') return 'Overdue';
+  if(st==='notstarted') return 'Not Started';
+  return st;
+}
+function getPhaseStatus(r){
+  const raw=normStatus(get(r,'STATUS'));
+  const pe=get(r,'PLANNED END');
+  const ae=get(r,'ACTUAL END');
+  if(raw==='inprogress'){
+    const peD=excelDateToJS(pe);
+    if(peD && peD<new Date() && !ae) return 'overdue';
+  }
+  return raw;
+}
+
+function buildPhaseCard(){
+  const card=document.getElementById('phaseCard');
+  card.innerHTML='<div class="card-title">Phase Completion</div>';
+  D.phases.forEach(r=>{
+    const st=getPhaseStatus(r);
+    const {cls,txt}=phaseIcon(st);
+    const name=get(r,'PHASE NAME')||'Phase';
+    const ps=fmtDate(get(r,'PLANNED START'));
+    const pe=fmtDate(get(r,'PLANNED END'));
+    const as=get(r,'ACTUAL START');
+    const ae=get(r,'ACTUAL END');
+    let dateStr=ps+(pe&&pe!==ps?' → '+pe:'');
+    let warnHtml='';
+    if(st==='overdue') warnHtml=`<div class="ph-warn">⚠ Overdue — still open</div>`;
+    if(st==='inprogress'){
+      const peD=excelDateToJS(get(r,'PLANNED END'));
+      if(peD){
+        const diff=Math.ceil((peD-new Date())/(1000*60*60*24));
+        if(diff>0) warnHtml=`<div class="ph-warn amber">${diff} days remaining</div>`;
+      }
+    }
+    if(st==='notstarted'){
+      const psD=excelDateToJS(get(r,'PLANNED START'));
+      if(psD){
+        const diff=Math.ceil((psD-new Date())/(1000*60*60*24));
+        if(diff>0&&diff<30) warnHtml=`<div class="ph-warn">Starts in ${diff} days</div>`;
+      }
+    }
+    card.innerHTML+=`
+      <div class="phase-item">
+        <div class="ph-icon ${cls}">${txt}</div>
+        <div>
+          <div class="ph-name">${name}</div>
+          <div class="ph-date">${dateStr}</div>
+          ${warnHtml}
+        </div>
+        <span class="chip ${phaseChip(st)}">${phaseLabel(st)}</span>
+      </div>`;
+  });
+}
+
+function buildAlertsAndActions(){
+  const rightCol=document.getElementById('rightCol');
+
+  // Collect alerts from issues + overdue billing + overdue phases
+  let alerts=[];
+  D.issues.forEach(r=>{
+    const sev=normSev(get(r,'SEVERITY'));
+    const st=String(get(r,'STATUS')||'').toLowerCase();
+    if(st!=='closed'){
+      alerts.push({sev,title:get(r,'TITLE'),body:get(r,'DESCRIPTION')||'',type:get(r,'TYPE'),cat:get(r,'CATEGORY')});
+    }
+  });
+  D.billing.forEach(r=>{
+    const st=String(get(r,'BILLING STATUS')||'').toLowerCase();
+    const amt=parseFloat(get(r,'INVOICE AMOUNT (INR)'))||0;
+    const inv=get(r,'INVOICE NO');
+    const due=fmtDate(get(r,'DUE DATE'));
+    if(st==='overdue') alerts.push({sev:'critical',title:`${inv} overdue since ${due}`,body:`${fmtINR(amt)} unpaid — follow up with client immediately`,type:'Billing',cat:'Collection'});
+    else if(st==='sent'||st==='scrutiny') alerts.push({sev:'high',title:`${inv} pending — ${fmtINR(amt)}`,body:get(r,'REMARKS')||'Under scrutiny / awaiting payment',type:'Billing',cat:'Collection'});
+  });
+  D.phases.forEach(r=>{
+    if(getPhaseStatus(r)==='overdue'){
+      const pe=fmtDate(get(r,'PLANNED END'));
+      alerts.push({sev:'critical',title:get(r,'PHASE NAME')+' — overdue',body:`Planned end: ${pe}. No actual end recorded.`,type:'Phase',cat:'Schedule'});
+    }
+  });
+
+  // Interventions
+  let intvs=[];
+  const outstandingBills=D.billing.filter(r=>{const s=String(get(r,'BILLING STATUS')||'').toLowerCase();return s==='overdue'||s==='sent';});
+  outstandingBills.forEach((r,i)=>{
+    const inv=get(r,'INVOICE NO');
+    const amt=fmtINR(parseFloat(get(r,'INVOICE AMOUNT (INR)'))||0);
+    const s=String(get(r,'BILLING STATUS')||'').toLowerCase();
+    intvs.push({p:s==='overdue'?'r':'a',txt:`${s==='overdue'?'Chase':'Clear scrutiny for'} ${inv}`,body:`${amt} — ${s==='overdue'?'overdue, escalate to client immediately':'resolve all objections'}`});
+  });
+  const handoverPhase=D.phases.find(r=>String(get(r,'PHASE NAME')||'').toLowerCase().includes('hand'));
+  if(handoverPhase){
+    const peD=excelDateToJS(get(handoverPhase,'PLANNED END'));
+    if(peD){
+      const diff=Math.ceil((peD-new Date())/(1000*60*60*24));
+      if(diff<60&&diff>0) intvs.push({p:'r',txt:`Handover in ${diff} days — emergency review`,body:'Ensure all phases, inspections, and documentation are on track.'});
+    }
+  }
+  const budget=parseFloat(get(D.projects[0]||{},'CONTRACT BUDGET (INR)'))||0;
+  let totalBilled=0; D.billing.forEach(r=>{totalBilled+=parseFloat(get(r,'INVOICE AMOUNT (INR)'))||0;});
+  const unbilled=budget-totalBilled;
+  if(unbilled>0) intvs.push({p:'a',txt:'Raise next billing immediately',body:`${fmtINR(unbilled)} unbilled. Do not wait for handover — lump-sum dispute risk.`});
+
+  let alertsHtml='';
+  alerts.slice(0,4).forEach(a=>{
+    const isCrit=a.sev==='critical';
+    alertsHtml+=`<div class="alert ${isCrit?'':'warn'}"><span class="alert-tag ${isCrit?'crit':'high'}">${a.sev.toUpperCase()} · ${a.cat||a.type}</span><div class="alert-title">${a.title}</div><div class="alert-body">${a.body}</div></div>`;
+  });
+  let intvHtml='';
+  intvs.slice(0,5).forEach((iv,i)=>{
+    intvHtml+=`<div class="intv"><div class="intv-n ${iv.p}">${i+1}</div><div><div class="intv-title">${iv.txt}</div><div class="intv-body">${iv.body}</div></div></div>`;
+  });
+
+  rightCol.innerHTML=`
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">What is Slipping</div>
+      ${alertsHtml||'<div style="font-size:12px;color:var(--green);padding:12px 0">✓ No critical alerts at this time</div>'}
+    </div>
+    <div class="card">
+      <div class="card-title">Management Intervention</div>
+      ${intvHtml||'<div style="font-size:12px;color:var(--muted);padding:8px 0">No immediate interventions required.</div>'}
+    </div>`;
+}
+
+// ── PHASES TAB ────────────────────────────────────────────────────
+let _phaseTabInit=false;
+function initPhaseTab(){
+  if(_phaseTabInit) return; _phaseTabInit=true;
+
+  // Counts
+  const phases=D.phases;
+  const comp=phases.filter(r=>getPhaseStatus(r)==='completed').length;
+  const prog=phases.filter(r=>['inprogress','overdue'].includes(getPhaseStatus(r))).length;
+  const wait=phases.filter(r=>getPhaseStatus(r)==='notstarted').length;
+
+  // Progress card
+  const ppc=document.getElementById('phaseProgressCard');
+  const overallPct=phases.length?Math.round(comp/phases.length*100):0;
+  ppc.innerHTML=`
+    <div class="card-title">Phase Progress Tracker</div>
+    <div style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px">
+        <span>Overall Completion</span><span style="color:var(--cyan);font-weight:600">${overallPct}%</span>
+      </div>
+      <div class="prog-outer" style="height:8px"><div class="prog-inner" style="width:0;background:linear-gradient(90deg,var(--cyan2),var(--cyan))" id="overallBar"></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--green)">${comp}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Completed</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--red)">${prog}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">In Progress</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--muted)">${wait}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Not Started</div>
+      </div>
+    </div>
+    <div class="chart-box"><canvas id="phaseChart"></canvas></div>`;
+
+  setTimeout(()=>{
+    document.getElementById('overallBar').style.width=overallPct+'%';
+    if(_charts.phase) _charts.phase.destroy();
+    _charts.phase=new Chart(document.getElementById('phaseChart'),{
+      type:'doughnut',
+      data:{labels:['Completed','In Progress / Overdue','Not Started'],datasets:[{data:[comp,prog,wait],backgroundColor:['#16a34a','#dc2626','#e2e8f0'],borderColor:['#16a34a','#dc2626','#cbd5e1'],borderWidth:2,hoverOffset:6}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{position:'bottom',labels:{color:'#64748b',font:{size:11,family:'IBM Plex Sans'},boxWidth:10,padding:14}},tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw+' phases'}}}}
+    });
+  },100);
+
+  // Detail table
+  const pdc=document.getElementById('phaseDetailCard');
+  const stMap={completed:['chip-done','Completed'],inprogress:['chip-prog','In Progress'],overdue:['chip-crit','Overdue'],notstarted:['chip-wait','Not Started']};
+  let tbody='';
+  D.phases.forEach((r,i)=>{
+    const st=getPhaseStatus(r);
+    const [cls,lbl]=stMap[st]||['chip-wait','Unknown'];
+    tbody+=`<tr>
+      <td style="color:var(--muted);padding:9px 8px">${i+1}</td>
+      <td style="padding:9px 8px;font-size:12px">${get(r,'PHASE NAME')}</td>
+      <td style="padding:9px 8px;color:var(--muted)">${fmtDate(get(r,'PLANNED START'))}</td>
+      <td style="padding:9px 8px;color:var(--muted)">${fmtDate(get(r,'PLANNED END'))}</td>
+      <td style="padding:9px 8px"><span class="chip ${cls}">${lbl}</span></td>
+    </tr>`;
+  });
+  pdc.innerHTML=`
+    <div class="card-title">Phase Timeline Detail</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr>
+          <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">#</th>
+          <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">Phase</th>
+          <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">Start</th>
+          <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">End</th>
+          <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">Status</th>
+        </tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>`;
+
+  // Gantt
+  const gc=document.getElementById('ganttCard');
+  const stColor={completed:'var(--green)',inprogress:'var(--amber)',overdue:'var(--red)',notstarted:'var(--dim)'};
+  const pctMap={completed:100,inprogress:60,overdue:40,notstarted:0};
+  let ganttHtml=D.phases.map((r,i)=>{
+    const st=getPhaseStatus(r);
+    const pct=pctMap[st]||0;
+    return `<div style="display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i+1}. ${get(r,'PHASE NAME')}</div>
+      <div style="position:relative">
+        <div style="height:20px;background:var(--bg3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${stColor[st]};border-radius:3px;opacity:.8"></div>
+        </div>
+        <span style="position:absolute;right:6px;top:2px;font-size:10px;color:var(--muted)">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+  gc.innerHTML=`<div class="card-title">Gantt Overview</div><div id="gantt" style="overflow-x:auto">${ganttHtml}</div>`;
+}
+
+// ── BILLING TAB ───────────────────────────────────────────────────
+let _billingInit=false;
+function initBillingTab(){
+  if(_billingInit) return; _billingInit=true;
+
+  const budget=parseFloat(get(D.projects[0]||{},'CONTRACT BUDGET (INR)'))||0;
+  let totalBilled=0,totalCollected=0,totalOutstanding=0;
+  D.billing.forEach(r=>{
+    totalBilled+=parseFloat(get(r,'INVOICE AMOUNT (INR)'))||0;
+    totalCollected+=parseFloat(get(r,'AMOUNT RECEIVED (INR)'))||0;
+    totalOutstanding+=parseFloat(get(r,'OUTSTANDING (INR)'))||0;
+  });
+
+  document.getElementById('billingKpi').innerHTML=`
+    <div class="kpi c"><div class="kpi-label">Contract</div><div class="kpi-val cyan">${fmtINR(budget)}</div><div class="kpi-sub">Total PMC fee</div></div>
+    <div class="kpi a"><div class="kpi-label">Billed</div><div class="kpi-val">${fmtINR(totalBilled)}</div><div class="kpi-sub">${budget?((totalBilled/budget)*100).toFixed(1):0}% of contract</div></div>
+    <div class="kpi g"><div class="kpi-label">Collected</div><div class="kpi-val green">${fmtINR(totalCollected)}</div><div class="kpi-sub">${D.billing.filter(r=>String(get(r,'BILLING STATUS')||'').toLowerCase()==='paid').length} invoices cleared</div></div>
+    <div class="kpi r"><div class="kpi-label">Outstanding</div><div class="kpi-val red">${fmtINR(totalOutstanding)}</div><div class="kpi-sub">${totalBilled?((totalOutstanding/totalBilled)*100).toFixed(1):0}% of billed</div></div>`;
+
+  // Collection bar
+  const collPct=totalBilled?(totalCollected/totalBilled*100).toFixed(1):0;
+  const outPct=totalBilled?(totalOutstanding/totalBilled*100).toFixed(1):0;
+
+  // Invoice table
+  let tableRows='';
+  const statusStyle={
+    paid:'chip chip-done',sent:'chip chip-prog',overdue:'chip chip-crit',
+    'partially paid':'chip chip-prog',scrutiny:'chip chip-prog',draft:'chip chip-wait'
+  };
+  D.billing.forEach(r=>{
+    const inv=get(r,'INVOICE NO');
+    const amt=parseFloat(get(r,'INVOICE AMOUNT (INR)'))||0;
+    const due=fmtDate(get(r,'DUE DATE'));
+    const invDate=fmtDate(get(r,'INVOICE DATE'));
+    const st=String(get(r,'BILLING STATUS')||'').toLowerCase();
+    const isPaid=st==='paid';
+    const isOverdue=st==='overdue';
+    const isSent=st==='sent'||st==='scrutiny';
+    const rowClass=isOverdue?'warn-row':isSent?'amb-row':'';
+    const amtClass=isPaid?'green':isOverdue?'red':'amber';
+    const chipCls=statusStyle[st]||'chip chip-wait';
+    tableRows+=`<tr class="${rowClass}">
+      <td style="font-family:var(--font-display);font-weight:600">${inv}</td>
+      <td style="color:var(--muted)">${invDate}</td>
+      <td style="${isOverdue?'color:var(--red);font-weight:600':''}">${due}${isOverdue?' ⚠':''}</td>
+      <td style="text-align:right"><span class="amt ${amtClass}">${fmtINRFull(amt)}</span></td>
+      <td><span class="${chipCls}">${st.charAt(0).toUpperCase()+st.slice(1)}</span></td>
+    </tr>`;
+  });
+
+  document.getElementById('invoiceCard').innerHTML=`
+    <div class="card-title">Invoice Register</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Collected vs Outstanding</div>
+    <div class="coll-bar">
+      <div class="coll-seg" style="width:${collPct}%;background:var(--green);color:#fff">${collPct}% Collected</div>
+      <div class="coll-seg" style="width:${outPct}%;background:var(--red);color:#fff">${outPct}% Outstanding</div>
+    </div>
+    <div style="display:flex;gap:20px;font-size:10px;color:var(--muted);margin-bottom:20px">
+      <span style="color:var(--green)">● ${fmtINRFull(totalCollected)} collected</span>
+      <span style="color:var(--red)">● ${fmtINRFull(totalOutstanding)} outstanding</span>
+    </div>
+    <table class="bill-table"><thead><tr>
+      <th>Invoice</th><th>Invoice Date</th><th>Due Date</th><th style="text-align:right">Amount</th><th>Status</th>
+    </tr></thead><tbody>${tableRows}</tbody></table>
+    <div class="note">⚡ <strong>Billing gap:</strong> ${fmtINR(budget-totalBilled)} remains unbilled. Raise next invoice before project closure.</div>`;
+
+  // RAB chart + expenses
+  const rabLabels=D.billing.map(r=>get(r,'INVOICE NO'));
+  const rabData=D.billing.map(r=>parseFloat(get(r,'INVOICE AMOUNT (INR)'))||0);
+  const rabColors=D.billing.map(r=>{
+    const s=String(get(r,'BILLING STATUS')||'').toLowerCase();
+    if(s==='paid') return '#22c55e';
+    if(s==='overdue') return '#ef4444';
+    return '#f59e0b';
+  });
+
+  let expHtml='';
+  let totalExp=0;
+  D.expenses.forEach(r=>{
+    const amt=parseFloat(get(r,'AMOUNT (INR)'))||0;
+    totalExp+=amt;
+    expHtml+=`<div class="exp-row"><div><div class="exp-name">${get(r,'DESCRIPTION')||'Expense'}</div><div class="exp-cat">${get(r,'CATEGORY')}</div></div><div class="exp-amt">${fmtINRFull(amt)}</div></div>`;
+  });
+  const cashGap=totalCollected-totalExp;
+
+  document.getElementById('billingRight').innerHTML=`
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Invoice Chart</div>
+      <div class="chart-box"><canvas id="rabChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Expenses</div>
+      ${expHtml}
+      <div class="total-row"><div style="font-family:var(--font-display);font-weight:700">TOTAL EXPENSES</div><div style="font-family:var(--font-display);font-weight:700;color:var(--red);font-size:15px">${fmtINRFull(totalExp)}</div></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">
+        ${cashGap<0?`⚠ Expenses exceed collections by <span style="color:var(--red);font-weight:600">${fmtINRFull(Math.abs(cashGap))}</span>`:`✓ Collections exceed expenses by <span style="color:var(--green);font-weight:600">${fmtINRFull(cashGap)}</span>`}
+      </div>
+    </div>`;
+
+  setTimeout(()=>{
+    if(_charts.rab) _charts.rab.destroy();
+    _charts.rab=new Chart(document.getElementById('rabChart'),{
+      type:'bar',
+      data:{labels:rabLabels,datasets:[{label:'Amount (₹)',data:rabData,backgroundColor:rabColors,borderRadius:5,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'₹'+c.raw.toLocaleString('en-IN')}}},scales:{x:{grid:{display:false},ticks:{color:'#64748b',font:{size:11}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>'₹'+(v/100000).toFixed(1)+'L',color:'#64748b',font:{size:10}},border:{display:false}}}}
+    });
+  },100);
+}
+
+// ── ISSUES TAB ────────────────────────────────────────────────────
+let _issuesInit=false;
+function initIssuesTab(){
+  if(_issuesInit) return; _issuesInit=true;
+  const sevClass={critical:'sev sev-crit',high:'sev sev-high',medium:'sev sev-med',low:'sev'};
+  let html=D.issues.map(r=>{
+    const st=String(get(r,'STATUS')||'').toLowerCase();
+    const stHtml=st==='closed'?'<span class="st-closed">✓ Closed</span>':
+      st==='open'?'<span class="st-open">Open</span>':'<span class="st-prog">In Progress</span>';
+    const sev=normSev(get(r,'SEVERITY'));
+    return `<div style="display:grid;grid-template-columns:1fr 90px 90px 90px 90px;gap:8px;padding:12px 0;border-bottom:1px solid var(--border);align-items:start">
+      <div>
+        <div style="font-size:12px;color:var(--text);line-height:1.4;font-weight:500">${get(r,'TITLE')}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5">${get(r,'DESCRIPTION')||''}</div>
+      </div>
+      <div><span style="font-size:10px;color:var(--muted);background:var(--bg3);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">${get(r,'TYPE')}</span></div>
+      <div><span style="font-size:10px;color:var(--muted);background:var(--bg3);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">${get(r,'CATEGORY')}</span></div>
+      <div><span class="${sevClass[sev]||'sev'}">${sev}</span></div>
+      <div>${stHtml}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('issuesCard').innerHTML=`
+    <div class="card-title">Issues, Risks &amp; Changes (${D.issues.length})</div>
+    <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 90px;gap:8px;padding:6px 0;border-bottom:2px solid var(--border2);margin-bottom:4px">
+      <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Title</div>
+      <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Type</div>
+      <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Category</div>
+      <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Severity</div>
+      <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Status</div>
+    </div>
+    ${html||'<div style="padding:20px;color:var(--muted);font-size:12px">No issues recorded.</div>'}`;
+}
+
+// ── TEAM TAB ──────────────────────────────────────────────────────
+let _teamInit=false;
+function initTeamTab(){
+  if(_teamInit) return; _teamInit=true;
+  const html=D.users.map(r=>{
+    const name=get(r,'FULL NAME')||'—';
+    const role=get(r,'DESIGNATION')||'';
+    const email=get(r,'EMAIL')||'';
+    const initials=name.split(' ').map(w=>w[0]).slice(0,2).join('');
+    return `<div class="team-card">
+      <div class="avatar">${initials}</div>
+      <div>
+        <div class="member-name">${name}</div>
+        <div class="member-role">${role}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:3px">${email}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('teamCard').innerHTML=`
+    <div class="card-title">Team (${D.users.length} Members)</div>
+    <div class="team-grid">${html||'<div style="color:var(--muted)">No team members found.</div>'}</div>`;
+}
+
+// ── TAB SWITCH ────────────────────────────────────────────────────
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='phases') initPhaseTab();
+  if(id==='billing') initBillingTab();
+  if(id==='issues') initIssuesTab();
+  if(id==='team') initTeamTab();
+}
+</script>
+</body>
+</html>
