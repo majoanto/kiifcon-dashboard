@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KIIFCON · Pinarayi Hub · Command Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f0f4f8;--bg1:#ffffff;--bg2:#ffffff;--bg3:#f8fafc;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --text:#1e293b;--muted:#64748b;--dim:#94a3b8;
+  --cyan:#1d6fb8;--cyan2:#1558a0;--cyan-glow:rgba(29,111,184,.1);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,.08);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,.08);
+  --gold:#b45309;
+  --r:10px;
+  --font-display:'Plus Jakarta Sans',sans-serif;
+  --font-mono:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;min-height:100vh;overflow-x:hidden}
+
+/* SUBTLE BACKGROUND TEXTURE */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(29,111,184,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(29,111,184,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 32px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;height:56px;gap:16px;flex-wrap:wrap}
+.hdr-brand{display:flex;align-items:center;gap:12px}
+.hdr-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--cyan),var(--cyan2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:14px;color:#fff;flex-shrink:0}
+.hdr-title{font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--text);line-height:1.2}
+.hdr-sub{font-size:11px;color:var(--muted);letter-spacing:.04em}
+.hdr-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.countdown{background:var(--red-bg);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:6px 12px;text-align:center}
+.countdown-num{font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--red);line-height:1}
+.countdown-label{font-size:9px;color:var(--red);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 6px #16a34a;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* NAV TABS */
+nav{background:var(--bg1);border-bottom:1px solid var(--border);padding:0 32px;overflow-x:auto;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.nav-tabs{display:flex;gap:0;white-space:nowrap}
+.tab-btn{padding:14px 22px;font-family:var(--font-display);font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;position:relative}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);font-weight:600}
+.tab-btn .badge{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:10px;font-size:9px;background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.tab-btn .badge.ok{background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.3)}
+
+/* MAIN */
+main{padding:28px 32px;max-width:1400px;margin:0 auto;position:relative;z-index:1}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* KPI STRIP */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0}
+.kpi.c::after{background:var(--cyan)} .kpi.a::after{background:var(--amber)} .kpi.g::after{background:var(--green)} .kpi.r::after{background:var(--red)} .kpi.gold::after{background:var(--gold)}
+.kpi-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.kpi-val{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;color:var(--text)}
+.kpi-val.red{color:var(--red)} .kpi-val.green{color:var(--green)} .kpi-val.amber{color:var(--amber)} .kpi-val.cyan{color:var(--cyan)}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:6px}
+.kpi-delta{position:absolute;top:16px;right:16px;font-size:10px;padding:2px 8px;border-radius:4px}
+.kpi-delta.warn{background:var(--red-bg);color:var(--red)}
+.kpi-delta.ok{background:var(--green-bg);color:var(--green)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-bottom:20px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
+.full{margin-bottom:20px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card-title{font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--cyan);flex-shrink:0}
+
+/* PHASE TIMELINE */
+.phase-item{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--border)}
+.phase-item:last-child{border-bottom:none}
+.ph-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:2px}
+.ph-done{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.ph-prog{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.ph-wait{background:var(--bg3);color:var(--dim);border:1px solid var(--border)}
+.ph-crit{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.ph-name{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+.ph-date{font-size:10px;color:var(--muted);margin-top:3px}
+.ph-warn{font-size:10px;color:var(--red);margin-top:3px}
+.ph-warn.amber{color:var(--amber)}
+.chip{display:inline-block;font-size:9px;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.chip-done{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.chip-prog{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.chip-wait{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+.chip-crit{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+
+/* PROGRESS BAR */
+.prog-wrap{margin:6px 0 2px}
+.prog-outer{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.prog-inner{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+/* ALERT CARDS */
+.alert{border-left:3px solid var(--red);background:var(--red-bg);border-radius:0 var(--r) var(--r) 0;padding:12px 14px;margin-bottom:10px}
+.alert.warn{border-left-color:var(--amber);background:var(--amber-bg)}
+.alert-tag{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.alert-tag.crit{color:var(--red)} .alert-tag.high{color:var(--amber)}
+.alert-title{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.alert-body{font-size:11px;color:var(--muted);line-height:1.6}
+
+/* INTERVENTION */
+.intv{display:flex;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;transition:border-color .2s}
+.intv:hover{border-color:var(--cyan)}
+.intv-n{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:var(--font-display)}
+.intv-n.r{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.intv-n.a{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.intv-title{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.intv-body{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* BILLING TABLE */
+.bill-table{width:100%;border-collapse:collapse}
+.bill-table th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.bill-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.bill-table tr:last-child td{border-bottom:none}
+.bill-table tr:hover td{background:rgba(255,255,255,.02)}
+.bill-table tr.warn-row td{background:rgba(239,68,68,.04)}
+.bill-table tr.amb-row td{background:rgba(245,158,11,.04)}
+.amt{font-family:var(--font-display);font-weight:600}
+.amt.red{color:var(--red)} .amt.amber{color:var(--amber)} .amt.green{color:var(--green)}
+
+/* COLLECTION BAR */
+.coll-bar{height:28px;display:flex;border-radius:6px;overflow:hidden;margin:12px 0}
+.coll-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;transition:width 1s}
+
+/* EXPENSE ROW */
+.exp-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.exp-row:last-child{border-bottom:none}
+.exp-name{font-size:12px;color:var(--text)}
+.exp-cat{font-size:10px;color:var(--muted);margin-top:2px}
+.exp-amt{font-family:var(--font-display);font-weight:600;font-size:13px}
+
+/* ISSUES TABLE */
+.iss-row{display:grid;grid-template-columns:1fr 80px 70px 80px;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);align-items:start}
+.iss-row:last-child{border-bottom:none}
+.iss-title{font-size:12px;color:var(--text);line-height:1.4}
+.iss-meta{font-size:10px;color:var(--muted);margin-top:3px}
+.sev{font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:12px}
+.sev-crit{background:var(--red-bg);color:var(--red)} .sev-high{background:var(--amber-bg);color:var(--amber)}
+.st-closed{font-size:9px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:12px;font-weight:600}
+
+/* TEAM GRID */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.team-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:12px;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.team-card:hover{border-color:var(--cyan);box-shadow:0 2px 8px rgba(29,111,184,.1)}
+.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--cyan2),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.member-name{font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text)}
+.member-role{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4}
+
+/* CHART CONTAINERS */
+.chart-box{position:relative;height:220px}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+
+/* INFO NOTE */
+.note{background:rgba(29,111,184,.06);border:1px solid rgba(29,111,184,.2);border-radius:var(--r);padding:12px 16px;font-size:11px;color:var(--cyan2);line-height:1.7;margin-top:14px}
+
+/* TOTAL ROW */
+.total-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:2px solid var(--border2);margin-top:6px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+
+/* RESPONSIVE */
+@media(max-width:1024px){.kpi-grid{grid-template-columns:repeat(3,1fr)}.two-col,.three-col{grid-template-columns:1fr}}
+@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.main{padding:16px}.kpi-val{font-size:20px}}
+
+/* FADE IN */
+.tab-panel.active .card{animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card:nth-child(2){animation-delay:.06s} .card:nth-child(3){animation-delay:.12s} .card:nth-child(4){animation-delay:.18s}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-inner">
+    <div class="hdr-brand">
+      <div class="hdr-logo">K</div>
+      <div>
+        <div class="hdr-title">PMC · Educational Hub, Pinarayi</div>
+        <div class="hdr-sub">KIIFCON &nbsp;·&nbsp; Client: KITFRA &nbsp;·&nbsp; AD-51 &nbsp;·&nbsp; ₹3,98,13,751</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
+        <span class="live-dot"></span> Live · <span id="currentDate"></span>
+      </div>
+      <div class="countdown">
+        <div class="countdown-num" id="days">21</div>
+        <div class="countdown-label">days to handover</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('overview',this)">⬡ Overview</button>
+    <button class="tab-btn" onclick="switchTab('phases',this)">◎ Phases</button>
+    <button class="tab-btn" onclick="switchTab('billing',this)">◈ Billing <span class="badge">2</span></button>
+    <button class="tab-btn" onclick="switchTab('issues',this)">△ Issues <span class="badge ok">9</span></button>
+    <button class="tab-btn" onclick="switchTab('team',this)">◻ Team</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ══════════ OVERVIEW ══════════ -->
+<div class="tab-panel active" id="tab-overview">
+
+  <div class="kpi-grid">
+    <div class="kpi c">
+      <div class="kpi-label">Contract Value</div>
+      <div class="kpi-val cyan" data-count="3.98" data-suffix=" Cr">₹0</div>
+      <div class="kpi-sub">₹3,98,13,751 total</div>
+    </div>
+    <div class="kpi gold">
+      <div class="kpi-label">Total Billed</div>
+      <div class="kpi-val" data-count="78.3" data-suffix=" L">₹0</div>
+      <div class="kpi-sub">19.7% of contract · 5 RABs</div>
+      <div class="kpi-delta warn">Lagging</div>
+    </div>
+    <div class="kpi g">
+      <div class="kpi-label">Collected</div>
+      <div class="kpi-val green" data-count="38.4" data-suffix=" L">₹0</div>
+      <div class="kpi-sub">RAB 01–03 cleared</div>
+      <div class="kpi-delta ok">Paid</div>
+    </div>
+    <div class="kpi r">
+      <div class="kpi-label">Outstanding</div>
+      <div class="kpi-val red" data-count="39.9" data-suffix=" L">₹0</div>
+      <div class="kpi-sub">RAB 04 overdue + RAB 05 scrutiny</div>
+      <div class="kpi-delta warn">⚠ Urgent</div>
+    </div>
+    <div class="kpi a">
+      <div class="kpi-label">Total Expenses</div>
+      <div class="kpi-val amber" data-count="52.9" data-suffix=" L">₹0</div>
+      <div class="kpi-sub">Cash gap: ₹14.5 L vs collections</div>
+      <div class="kpi-delta warn">Over</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Phase Completion</div>
+      <div class="phase-item"><div class="ph-icon ph-done">✓</div><div><div class="ph-name">Tendering &amp; Award of Work</div><div class="ph-date">Jan → Feb 2024</div></div><span class="chip chip-done">Completed</span></div>
+      <div class="phase-item"><div class="ph-icon ph-done">✓</div><div><div class="ph-name">Site Hand Over</div><div class="ph-date">May 2024</div></div><span class="chip chip-done">Completed</span></div>
+      <div class="phase-item"><div class="ph-icon ph-done">✓</div><div><div class="ph-name">Mobilization</div><div class="ph-date">May → Jun 2024</div></div><span class="chip chip-done">Completed</span></div>
+      <div class="phase-item"><div class="ph-icon ph-crit">!</div><div><div class="ph-name">GFC Drawings</div><div class="ph-date">Started Jun 2024 · Planned end Oct 2024</div><div class="ph-warn">⚠ ~18 months overdue — still open</div></div><span class="chip chip-crit">In Progress</span></div>
+      <div class="phase-item"><div class="ph-icon ph-done">✓</div><div><div class="ph-name">Scheme Approval (Fire &amp; Electrical)</div><div class="ph-date">Jul 2024 → Nov 2025</div></div><span class="chip chip-done">Completed</span></div>
+      <div class="phase-item"><div class="ph-icon ph-done">✓</div><div><div class="ph-name">Site Clearance</div><div class="ph-date">May 2024 → Apr 2025</div></div><span class="chip chip-done">Completed</span></div>
+      <div class="phase-item"><div class="ph-icon ph-prog">→</div><div><div class="ph-name">Construction Works</div><div class="ph-date">May 2024 → 23 May 2026</div><div class="ph-warn amber">16 days remaining</div></div><span class="chip chip-prog">In Progress</span></div>
+      <div class="phase-item"><div class="ph-icon ph-crit">!</div><div><div class="ph-name">Inspection &amp; Testing</div><div class="ph-date">14 May → 18 May 2026</div><div class="ph-warn">Not mobilised — starts in 7 days</div></div><span class="chip chip-crit">Not Started</span></div>
+      <div class="phase-item"><div class="ph-icon ph-wait">○</div><div><div class="ph-name">Hand Over</div><div class="ph-date">28 May 2026</div></div><span class="chip chip-wait">Not Started</span></div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">What is Slipping</div>
+        <div class="alert"><span class="alert-tag crit">Critical · Technical</span><div class="alert-title">GFC Drawings — 18 months overdue</div><div class="alert-body">Design consultant delays across IHRD, GH, Canteen, Polytechnic, ITI/KIHM, CSA &amp; Auditorium. Scope changes compounded the delay.</div></div>
+        <div class="alert"><span class="alert-tag crit">Critical · Schedule</span><div class="alert-title">Inspection &amp; Testing not mobilised</div><div class="alert-body">Window opens 14 May. Construction ends 23 May. Only 5 days before handover — critical gap.</div></div>
+        <div class="alert warn"><span class="alert-tag high">High · Financial</span><div class="alert-title">₹39.9 L uncollected — no date set</div><div class="alert-body">RAB 04 overdue since 17 Mar. RAB 05 under scrutiny. Together = 50.9% of all billed value.</div></div>
+        <div class="alert warn"><span class="alert-tag high">High · Scope</span><div class="alert-title">External utility &amp; master plan revisions</div><div class="alert-body">MEP conflicts, stormwater changes, TS committee approvals caused construction timeline extension.</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Management Intervention</div>
+        <div class="intv"><div class="intv-n r">1</div><div><div class="intv-title">Chase RAB 04 immediately</div><div class="intv-body">₹19.7 L overdue 7+ weeks. Engage KITFRA accounts directly this week.</div></div></div>
+        <div class="intv"><div class="intv-n r">2</div><div><div class="intv-title">Resolve RAB 05 scrutiny</div><div class="intv-body">₹20.1 L locked. Clear all objections — combined outstanding ₹39.9 L.</div></div></div>
+        <div class="intv"><div class="intv-n r">3</div><div><div class="intv-title">28 May handover — emergency review</div><div class="intv-body">Construction + inspection + handover in 21 days. Formal plan or date extension needed NOW.</div></div></div>
+        <div class="intv"><div class="intv-n a">4</div><div><div class="intv-title">Mobilise Inspection team in 7 days</div><div class="intv-body">Assign personnel &amp; equipment immediately. Delay blocks final billing trigger.</div></div></div>
+        <div class="intv"><div class="intv-n a">5</div><div><div class="intv-title">Raise RAB 06 before closure</div><div class="intv-body">₹3.20 Cr unbilled vs 77% progress. Waiting = lump-sum dispute risk at handover.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PHASES ══════════ -->
+<div class="tab-panel" id="tab-phases">
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Phase Progress Tracker</div>
+      <div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px">
+          <span>Overall Completion</span><span style="color:var(--cyan);font-weight:600">77%</span>
+        </div>
+        <div class="prog-outer" style="height:8px"><div class="prog-inner" style="width:0;background:linear-gradient(90deg,var(--cyan2),var(--cyan))" data-width="77"></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">
+          <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--green)">5</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Completed</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">
+          <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--red)">2</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">In Progress</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">
+          <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--muted)">2</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Not Started</div>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="phaseChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Phase Timeline Detail</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">#</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">Phase</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">Start</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">End</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)">Status</th>
+          </tr></thead>
+          <tbody id="phaseTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <div class="card-title">Gantt Overview</div>
+    <div id="gantt" style="overflow-x:auto"></div>
+  </div>
+</div>
+
+<!-- ══════════ BILLING ══════════ -->
+<div class="tab-panel" id="tab-billing">
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi c"><div class="kpi-label">Contract</div><div class="kpi-val cyan">₹3.98 Cr</div><div class="kpi-sub">Total PMC fee</div></div>
+    <div class="kpi a"><div class="kpi-label">Billed</div><div class="kpi-val">₹78.3 L</div><div class="kpi-sub">19.7% of contract</div></div>
+    <div class="kpi g"><div class="kpi-label">Collected</div><div class="kpi-val green">₹38.4 L</div><div class="kpi-sub">3 RABs cleared</div></div>
+    <div class="kpi r"><div class="kpi-label">Outstanding</div><div class="kpi-val red">₹39.9 L</div><div class="kpi-sub">50.9% of billed</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">RAB Invoice Register</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Collected vs Outstanding</div>
+      <div class="coll-bar">
+        <div class="coll-seg" style="width:0;background:var(--green);color:#fff" data-width="49.1">49% Collected</div>
+        <div class="coll-seg" style="width:0;background:var(--red);color:#fff" data-width="50.9">51% Outstanding</div>
+      </div>
+      <div style="display:flex;gap:20px;font-size:10px;color:var(--muted);margin-bottom:20px">
+        <span style="color:var(--green)">● ₹38,42,847 collected</span>
+        <span style="color:var(--red)">● ₹39,86,086 outstanding</span>
+      </div>
+      <table class="bill-table" style="width:100%">
+        <thead><tr>
+          <th>Invoice</th><th>Invoice Date</th><th>Due Date</th><th style="text-align:right">Amount</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="font-family:var(--font-display);font-weight:600">RAB 01</td><td style="color:var(--muted)">31 Mar 2025</td><td style="color:var(--muted)">30 Apr 2025</td><td style="text-align:right"><span class="amt green">₹10,16,351</span></td><td><span class="chip chip-done">Paid</span></td></tr>
+          <tr><td style="font-family:var(--font-display);font-weight:600">RAB 02</td><td style="color:var(--muted)">02 Jul 2025</td><td style="color:var(--muted)">02 Aug 2025</td><td style="text-align:right"><span class="amt green">₹11,89,496</span></td><td><span class="chip chip-done">Paid</span></td></tr>
+          <tr><td style="font-family:var(--font-display);font-weight:600">RAB 03</td><td style="color:var(--muted)">25 Nov 2025</td><td style="color:var(--muted)">25 Dec 2025</td><td style="text-align:right"><span class="amt green">₹16,37,000</span></td><td><span class="chip chip-done">Paid</span></td></tr>
+          <tr class="warn-row"><td style="font-family:var(--font-display);font-weight:600">RAB 04</td><td style="color:var(--muted)">17 Feb 2026</td><td style="color:var(--red);font-weight:600">17 Mar 2026 ⚠</td><td style="text-align:right"><span class="amt red">₹19,72,464</span></td><td><span class="chip chip-crit">Overdue</span></td></tr>
+          <tr class="amb-row"><td style="font-family:var(--font-display);font-weight:600">RAB 05</td><td style="color:var(--muted)">31 Mar 2026</td><td style="color:var(--amber);font-weight:600">30 Apr 2026</td><td style="text-align:right"><span class="amt amber">₹20,13,622</span></td><td><span class="chip chip-prog">Scrutiny</span></td></tr>
+        </tbody>
+      </table>
+      <div class="note">⚡ <strong>Billing gap:</strong> 77% physical progress but only 19.7% billed. ₹3.20 Cr remains. Plan RAB 06 immediately — do not wait for handover.</div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">RAB Chart</div>
+        <div class="chart-box"><canvas id="rabChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Expenses (31 Mar 2026)</div>
+        <div class="exp-row"><div><div class="exp-name">Total Staff Salary</div><div class="exp-cat">Salary</div></div><div class="exp-amt">₹10,42,039</div></div>
+        <div class="exp-row"><div><div class="exp-name">Consultancy Charges – KIIFB</div><div class="exp-cat">Misc</div></div><div class="exp-amt">₹9,80,562</div></div>
+        <div class="exp-row"><div><div class="exp-name">Admin Salary</div><div class="exp-cat">Salary</div></div><div class="exp-amt">₹1,65,411</div></div>
+        <div class="exp-row"><div><div class="exp-name">Salary of RP</div><div class="exp-cat">Salary</div></div><div class="exp-amt">₹31,02,050</div></div>
+        <div class="exp-row"><div><div class="exp-name">Professional Charges (Manpower)</div><div class="exp-cat">Misc</div></div><div class="exp-amt">₹4,192</div></div>
+        <div class="total-row"><div style="font-family:var(--font-display);font-weight:700">TOTAL EXPENSES</div><div style="font-family:var(--font-display);font-weight:700;color:var(--red);font-size:15px">₹52,94,254</div></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px">⚠ Expenses exceed collections by <span style="color:var(--red);font-weight:600">₹14,51,407</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ISSUES ══════════ -->
+<div class="tab-panel" id="tab-issues">
+  <div class="card full">
+    <div class="card-title">Issues, Risks &amp; Change Register</div>
+    <div style="display:grid;grid-template-columns:1fr 80px 80px 80px 80px;gap:8px;padding:8px 0;border-bottom:1px solid var(--border2)">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">Title</div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">Type</div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">Category</div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">Severity</div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">Status</div>
+    </div>
+    <div id="issuesList"></div>
+    <div class="note" style="margin-top:16px">✅ All 9 issues are closed. No open risks as of 07 May 2026. Proactively raise new issues for Inspection &amp; Testing mobilisation and RAB 04/05 collection delays.</div>
+  </div>
+</div>
+
+<!-- ══════════ TEAM ══════════ -->
+<div class="tab-panel" id="tab-team">
+  <div class="card full">
+    <div class="card-title">Project Team</div>
+    <div class="team-grid" id="teamGrid"></div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+const phases = [
+  {n:'Tendering & Award of Work',ps:'Jan 2024',pe:'Feb 2024',as:'Jan 2024',ae:'Feb 2024',st:'completed'},
+  {n:'Site Hand Over',ps:'May 2024',pe:'May 2024',as:'May 2024',ae:'May 2024',st:'completed'},
+  {n:'Mobilization',ps:'May 2024',pe:'Jun 2024',as:'May 2024',ae:'Jun 2024',st:'completed'},
+  {n:'GFC Drawings',ps:'May 2024',pe:'Oct 2024',as:'Jun 2024',ae:'—',st:'overdue'},
+  {n:'Scheme Approval (Fire & Electrical)',ps:'Jun 2024',pe:'Sep 2024',as:'Jul 2024',ae:'Nov 2025',st:'completed'},
+  {n:'Site Clearance',ps:'May 2024',pe:'Jun 2024',as:'May 2024',ae:'Apr 2025',st:'completed'},
+  {n:'Construction Works',ps:'May 2024',pe:'May 2026',as:'May 2024',ae:'—',st:'inprogress'},
+  {n:'Inspection & Testing',ps:'14 May 2026',pe:'18 May 2026',as:'—',ae:'—',st:'notstarted'},
+  {n:'Hand Over',ps:'28 May 2026',pe:'28 May 2026',as:'—',ae:'—',st:'notstarted'},
+];
+
+const issues = [
+  {t:'Delay in releasing GFC Drawings of Priority-1 Buildings (IHRD, GH & Canteen)',type:'Risk',cat:'Technical',sev:'critical',status:'Closed'},
+  {t:'Delay in releasing Polytechnic GFC drawings upto plinth',type:'Risk',cat:'Technical',sev:'critical',status:'Closed'},
+  {t:'Delay in releasing ITI & KIHM Buildings GFC drawings upto plinth',type:'Risk',cat:'Technical',sev:'critical',status:'Closed'},
+  {t:'Delay in releasing CSA & Auditorium GFC drawings upto plinth',type:'Risk',cat:'Technical',sev:'critical',status:'Closed'},
+  {t:'Delay due to OAT building earthwork excavation — no suitable disposal site',type:'Risk',cat:'Regulatory',sev:'critical',status:'Closed'},
+  {t:'Delay in removal of excess earth from site (stack area)',type:'Issue',cat:'Resource',sev:'critical',status:'Closed'},
+  {t:'Delay in finalization of external utility services and master plan revisions',type:'Change',cat:'Scope',sev:'high',status:'Closed'},
+  {t:'Scope changes in canteen kitchen layout — additional works, rework, structural modifications',type:'Change',cat:'Scope',sev:'critical',status:'Closed'},
+  {t:'Delay due to revision of columns — structural modifications per site conditions',type:'Change',cat:'Scope',sev:'high',status:'Closed'},
+];
+
+const team = [
+  {n:'Dr. SJ Vijayadas',r:'Director',e:'cpe.ia@kiifb.org'},
+  {n:'Murali LS',r:'General Manager',e:'dcc.tiw@kiifb.org'},
+  {n:'Sreejith S',r:'Chief Consultant',e:'sc2.tiw@kiifb.org'},
+  {n:'Binu M',r:'Project Lead',e:'rp01@kiifcon.com'},
+  {n:'Muhammed Sanooj',r:'Project Support Engineer',e:'pse01@kiifcon.com'},
+  {n:'Swathi Manoj',r:'Safety Engineer',e:'sfe02@kiffcon.com'},
+  {n:'Vyshnav B',r:'DPM (MEP)',e:'dpmmep1@kiffcon.com'},
+  {n:'Aswin S',r:'APM (Civil)',e:'apmc1@kiffcon.com'},
+  {n:'Abhiroop M',r:'Junior Consultant',e:'jrc38.pse@trc.kiifb.org'},
+  {n:'Sruthi K',r:'Resident Engineer (Civil)',e:'rec1@kiffcon.com'},
+];
+
+// ── TAB SWITCH ─────────────────────────────────────────────────────
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='phases') initPhaseTab();
+  if(id==='billing') initBillingCharts();
+  if(id==='issues') initIssues();
+  if(id==='team') initTeam();
+}
+
+// ── COUNTER ANIMATION ─────────────────────────────────────────────
+function animateCounters(){
+  document.querySelectorAll('[data-count]').forEach(el=>{
+    const target=parseFloat(el.dataset.count), suffix=el.dataset.suffix||'', prefix='₹';
+    let start=0, duration=1200, step=target/60;
+    const tick=()=>{
+      start=Math.min(start+step,target);
+      el.textContent=prefix+start.toFixed(start<10?2:1)+suffix;
+      if(start<target) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+// ── PROGRESS BARS ─────────────────────────────────────────────────
+function animateProgressBars(){
+  setTimeout(()=>{
+    document.querySelectorAll('[data-width]').forEach(el=>{
+      el.style.width=el.dataset.width+'%';
+    });
+  },200);
+}
+
+// ── COUNTDOWN ─────────────────────────────────────────────────────
+function updateCountdown(){
+  const target=new Date('2026-05-28');
+  const diff=Math.ceil((target-new Date())/(1000*60*60*24));
+  document.getElementById('days').textContent=Math.max(0,diff);
+}
+
+// ── CHARTS (OVERVIEW) ─────────────────────────────────────────────
+function initOverviewCharts(){
+  // RAB Chart in overview is deferred to billing tab
+}
+
+// ── PHASE TAB ─────────────────────────────────────────────────────
+function initPhaseTab(){
+  // Table
+  const tb=document.getElementById('phaseTableBody');
+  if(tb.innerHTML!=='') return;
+  const stMap={completed:['chip-done','Completed'],inprogress:['chip-prog','In Progress'],overdue:['chip-crit','Overdue'],notstarted:['chip-wait','Not Started']};
+  phases.forEach((p,i)=>{
+    const [cls,label]=stMap[p.st];
+    tb.innerHTML+=`<tr>
+      <td style="color:var(--muted);padding:9px 8px">${i+1}</td>
+      <td style="padding:9px 8px;font-size:12px">${p.n}</td>
+      <td style="padding:9px 8px;color:var(--muted)">${p.ps}</td>
+      <td style="padding:9px 8px;color:var(--muted)">${p.pe}</td>
+      <td style="padding:9px 8px"><span class="chip ${cls}">${label}</span></td>
+    </tr>`;
+  });
+
+  // Phase donut
+  if(window._phaseChartInit) return; window._phaseChartInit=true;
+  new Chart(document.getElementById('phaseChart'),{
+    type:'doughnut',
+    data:{
+      labels:['Completed','In Progress / Overdue','Not Started'],
+      datasets:[{data:[5,2,2],backgroundColor:['#16a34a','#dc2626','#e2e8f0'],borderColor:['#16a34a','#dc2626','#cbd5e1'],borderWidth:2,hoverOffset:6}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{position:'bottom',labels:{color:'#64748b',font:{size:11,family:'IBM Plex Sans'},boxWidth:10,padding:14}},tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw+' phases'}}}}
+  });
+
+  // Gantt
+  const g=document.getElementById('gantt');
+  if(g.innerHTML!=='') return;
+  const gHtml=phases.map((p,i)=>{
+    const stColor={completed:'var(--green)',inprogress:'var(--amber)',overdue:'var(--red)',notstarted:'var(--dim)'};
+    const pct=[100,100,100,60,100,100,77,0,0][i];
+    return `<div style="display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i+1}. ${p.n}</div>
+      <div style="position:relative">
+        <div style="height:20px;background:var(--bg3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${stColor[p.st]};border-radius:3px;opacity:.8;transition:width 1.2s"></div>
+        </div>
+        <span style="position:absolute;right:6px;top:2px;font-size:10px;color:var(--muted)">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+  g.innerHTML=gHtml;
+}
+
+// ── BILLING CHARTS ─────────────────────────────────────────────────
+let _billingInit=false;
+function initBillingCharts(){
+  if(_billingInit) return; _billingInit=true;
+  // Animate collection bar
+  setTimeout(()=>{
+    document.querySelectorAll('.coll-seg').forEach(el=>{
+      el.style.width=el.dataset.width+'%';
+    });
+  },100);
+  // RAB bar chart
+  new Chart(document.getElementById('rabChart'),{
+    type:'bar',
+    data:{
+      labels:['RAB 01','RAB 02','RAB 03','RAB 04','RAB 05'],
+      datasets:[{
+        label:'Amount (₹)',
+        data:[1016351,1189496,1637000,1972464,2013622],
+        backgroundColor:['#22c55e','#22c55e','#22c55e','#ef4444','#f59e0b'],
+        borderRadius:5,borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'₹'+c.raw.toLocaleString('en-IN')}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#64748b',font:{size:11}}},
+        y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>'₹'+(v/100000).toFixed(1)+'L',color:'#64748b',font:{size:10}},border:{display:false}}
+      }
+    }
+  });
+}
+
+// ── ISSUES ─────────────────────────────────────────────────────────
+function initIssues(){
+  const el=document.getElementById('issuesList');
+  if(el.innerHTML!=='') return;
+  el.innerHTML=issues.map(i=>`
+    <div style="display:grid;grid-template-columns:1fr 80px 80px 80px 80px;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);align-items:start">
+      <div style="font-size:12px;color:var(--text);line-height:1.4">${i.t}</div>
+      <div><span style="font-size:10px;color:var(--muted);background:var(--bg3);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">${i.type}</span></div>
+      <div><span style="font-size:10px;color:var(--muted);background:var(--bg3);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">${i.cat}</span></div>
+      <div><span class="sev ${i.sev==='critical'?'sev-crit':'sev-high'}">${i.sev}</span></div>
+      <div><span class="st-closed">✓ ${i.status}</span></div>
+    </div>`).join('');
+}
+
+// ── TEAM ──────────────────────────────────────────────────────────
+function initTeam(){
+  const el=document.getElementById('teamGrid');
+  if(el.innerHTML!=='') return;
+  el.innerHTML=team.map(m=>`
+    <div class="team-card">
+      <div class="avatar">${m.n.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div><div class="member-name">${m.n}</div><div class="member-role">${m.r}</div><div style="font-size:10px;color:var(--dim);margin-top:3px">${m.e}</div></div>
+    </div>`).join('');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  animateCounters();
+  animateProgressBars();
+  updateCountdown();
+  // Set live date dynamically
+  const d=new Date();
+  document.getElementById('currentDate').textContent=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+});
+</script>
+</body>
+</html>
