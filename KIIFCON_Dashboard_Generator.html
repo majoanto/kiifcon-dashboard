@@ -421,8 +421,7 @@ function buildDashboard(){
   const pname=get(proj,'PROJECT NAME')||'Project Dashboard';
   const client=get(proj,'CLIENT NAME')||'';
   const budget=get(proj,'CONTRACT BUDGET (INR)');
-  const shortName=pname.replace(/^PMC\s+for\s+/i,'').replace(/^PMC\s*[·\-:]\s*/i,'').trim();
-  document.getElementById('hdrTitle').textContent=shortName;
+  document.getElementById('hdrTitle').textContent=pname;
   document.getElementById('hdrSub').textContent='KIIFCON'+(client?' · Client: '+client:'')+(budget?' · '+fmtINR(budget):'');
 
   // Countdown to handover (last phase planned end)
