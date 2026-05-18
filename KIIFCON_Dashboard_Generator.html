@@ -198,7 +198,7 @@ main{padding:28px 32px;max-width:1400px;margin:0 auto;position:relative;z-index:
       <div class="hdr-brand">
         <div class="hdr-logo">K</div>
         <div>
-          <div class="hdr-title" id="hdrTitle">PMC Dashboard</div>
+          <div class="hdr-title" id="hdrTitle"> Dashboard</div>
           <div class="hdr-sub" id="hdrSub">KIIFCON</div>
         </div>
       </div>
@@ -420,7 +420,7 @@ function buildDashboard(){
   const pname=get(proj,'PROJECT NAME')||'Project Dashboard';
   const client=get(proj,'CLIENT NAME')||'';
   const budget=get(proj,'CONTRACT BUDGET (INR)');
-  document.getElementById('hdrTitle').textContent='PMC · '+pname;
+  document.getElementById('hdrTitle').textContent=' · '+pname;
   document.getElementById('hdrSub').textContent='KIIFCON'+(client?' · Client: '+client:'')+(budget?' · '+fmtINR(budget):'');
 
   // Countdown to handover (last phase planned end)
@@ -739,7 +739,7 @@ function initBillingTab(){
   });
 
   document.getElementById('billingKpi').innerHTML=`
-    <div class="kpi c"><div class="kpi-label">Contract</div><div class="kpi-val cyan">${fmtINR(budget)}</div><div class="kpi-sub">Total PMC fee</div></div>
+    <div class="kpi c"><div class="kpi-label">Contract</div><div class="kpi-val cyan">${fmtINR(budget)}</div><div class="kpi-sub">Total fee</div></div>
     <div class="kpi a"><div class="kpi-label">Billed</div><div class="kpi-val">${fmtINR(totalBilled)}</div><div class="kpi-sub">${budget?((totalBilled/budget)*100).toFixed(1):0}% of contract</div></div>
     <div class="kpi g"><div class="kpi-label">Collected</div><div class="kpi-val green">${fmtINR(totalCollected)}</div><div class="kpi-sub">${D.billing.filter(r=>String(get(r,'BILLING STATUS')||'').toLowerCase()==='paid').length} invoices cleared</div></div>
     <div class="kpi r"><div class="kpi-label">Outstanding</div><div class="kpi-val red">${fmtINR(totalOutstanding)}</div><div class="kpi-sub">${totalBilled?((totalOutstanding/totalBilled)*100).toFixed(1):0}% of billed</div></div>`;
