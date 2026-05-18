@@ -178,7 +178,7 @@ main{padding:28px 32px;max-width:1400px;margin:0 auto;position:relative;z-index:
       <div class="drop-text">Drop your Excel file here</div>
       <div class="drop-sub">or click to browse · .xlsx / .xls</div>
     </div>
-    <div class="upload-badge">⚡ Data stays in your browser · Never uploaded</div>
+    <div class="upload-badge">⚡ Powered by AI · Data stays in your browser · Never uploaded</div>
     <div id="statusMsg"></div>
     <div id="progressBar"><div id="progressFill"></div></div>
   </div>
@@ -198,7 +198,7 @@ main{padding:28px 32px;max-width:1400px;margin:0 auto;position:relative;z-index:
       <div class="hdr-brand">
         <div class="hdr-logo">K</div>
         <div>
-          <div class="hdr-title" id="hdrTitle">Dashboard</div>
+          <div class="hdr-title" id="hdrTitle">PMC Dashboard</div>
           <div class="hdr-sub" id="hdrSub">KIIFCON</div>
         </div>
       </div>
@@ -384,10 +384,11 @@ function resetToUpload(){
 
 // ── HELPERS ───────────────────────────────────────────────────────
 function col(rows,key){
-  // flexible column match
+  // flexible column match — strip leading symbols (●○◆ etc) and surrounding whitespace, keep inner spaces
   if(!rows||!rows.length) return undefined;
-  const k=Object.keys(rows[0]).find(k=>k.trim().replace(/[●○◆\s]+/g,'').toUpperCase()===key.replace(/\s/g,'').toUpperCase());
-  return k;
+  const normalize=s=>String(s).replace(/^[●○◆◇■□▶▷\s]+/,'').trim().toUpperCase();
+  const target=normalize(key);
+  return Object.keys(rows[0]).find(k=>normalize(k)===target);
 }
 function get(row,key){
   if(!row) return '';
@@ -420,7 +421,8 @@ function buildDashboard(){
   const pname=get(proj,'PROJECT NAME')||'Project Dashboard';
   const client=get(proj,'CLIENT NAME')||'';
   const budget=get(proj,'CONTRACT BUDGET (INR)');
-  document.getElementById('hdrTitle').textContent=' · '+pname;
+  const shortName=pname.replace(/^PMC\s+for\s+/i,'').replace(/^PMC\s*[·\-:]\s*/i,'').trim();
+  document.getElementById('hdrTitle').textContent='PMC · '+shortName;
   document.getElementById('hdrSub').textContent='KIIFCON'+(client?' · Client: '+client:'')+(budget?' · '+fmtINR(budget):'');
 
   // Countdown to handover (last phase planned end)
@@ -529,7 +531,13 @@ function buildPhaseCard(){
     const ae=get(r,'ACTUAL END');
     let dateStr=ps+(pe&&pe!==ps?' → '+pe:'');
     let warnHtml='';
-    if(st==='overdue') warnHtml=`<div class="ph-warn">⚠ Overdue — still open</div>`;
+    if(st==='overdue'){
+      const flag=String(get(r,'FLAG')||'').toLowerCase().trim();
+      const isExternal=flag==='external';
+      warnHtml=isExternal
+        ?`<div class="ph-warn" style="color:var(--amber)">⚠ Delayed — external factor (design consultant)</div>`
+        :`<div class="ph-warn">⚠ Overdue — still open</div>`;
+    }
     if(st==='inprogress'){
       const peD=excelDateToJS(get(r,'PLANNED END'));
       if(peD){
@@ -544,6 +552,10 @@ function buildPhaseCard(){
         if(diff>0&&diff<30) warnHtml=`<div class="ph-warn">Starts in ${diff} days</div>`;
       }
     }
+    const flag=String(get(r,'FLAG')||'').toLowerCase().trim();
+    const isExternal=flag==='external';
+    const chipLabel=st==='overdue'&&isExternal?'Ext. Delay':phaseLabel(st);
+    const chipCls=st==='overdue'&&isExternal?'chip-prog':phaseChip(st);
     card.innerHTML+=`
       <div class="phase-item">
         <div class="ph-icon ${cls}">${txt}</div>
@@ -552,7 +564,7 @@ function buildPhaseCard(){
           <div class="ph-date">${dateStr}</div>
           ${warnHtml}
         </div>
-        <span class="chip ${phaseChip(st)}">${phaseLabel(st)}</span>
+        <span class="chip ${chipCls}">${chipLabel}</span>
       </div>`;
   });
 }
@@ -739,14 +751,14 @@ function initBillingTab(){
   });
 
   document.getElementById('billingKpi').innerHTML=`
-    <div class="kpi c"><div class="kpi-label">Contract</div><div class="kpi-val cyan">${fmtINR(budget)}</div><div class="kpi-sub">Total fee</div></div>
+    <div class="kpi c"><div class="kpi-label">Contract</div><div class="kpi-val cyan">${fmtINR(budget)}</div><div class="kpi-sub">Total PMC fee</div></div>
     <div class="kpi a"><div class="kpi-label">Billed</div><div class="kpi-val">${fmtINR(totalBilled)}</div><div class="kpi-sub">${budget?((totalBilled/budget)*100).toFixed(1):0}% of contract</div></div>
     <div class="kpi g"><div class="kpi-label">Collected</div><div class="kpi-val green">${fmtINR(totalCollected)}</div><div class="kpi-sub">${D.billing.filter(r=>String(get(r,'BILLING STATUS')||'').toLowerCase()==='paid').length} invoices cleared</div></div>
     <div class="kpi r"><div class="kpi-label">Outstanding</div><div class="kpi-val red">${fmtINR(totalOutstanding)}</div><div class="kpi-sub">${totalBilled?((totalOutstanding/totalBilled)*100).toFixed(1):0}% of billed</div></div>`;
 
-  // Collection bar
-  const collPct=totalBilled?(totalCollected/totalBilled*100).toFixed(1):0;
-  const outPct=totalBilled?(totalOutstanding/totalBilled*100).toFixed(1):0;
+  // Collection bar — based on total billed only
+  const collPct=totalBilled?Math.round(totalCollected/totalBilled*100):0;
+  const outPct=100-collPct;
 
   // Invoice table
   let tableRows='';
@@ -779,8 +791,8 @@ function initBillingTab(){
     <div class="card-title">Invoice Register</div>
     <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Collected vs Outstanding</div>
     <div class="coll-bar">
-      <div class="coll-seg" style="width:${collPct}%;background:var(--green);color:#fff">${collPct}% Collected</div>
-      <div class="coll-seg" style="width:${outPct}%;background:var(--red);color:#fff">${outPct}% Outstanding</div>
+      <div class="coll-seg" style="width:${collPct}%;background:var(--green);color:#fff;min-width:${collPct>0?'60px':'0'}">${collPct>8?collPct+'% Collected':''}</div>
+      <div class="coll-seg" style="width:${outPct}%;background:var(--red);color:#fff;min-width:${outPct>0?'60px':'0'}">${outPct>8?outPct+'% Outstanding':''}</div>
     </div>
     <div style="display:flex;gap:20px;font-size:10px;color:var(--muted);margin-bottom:20px">
       <span style="color:var(--green)">● ${fmtINRFull(totalCollected)} collected</span>
@@ -789,7 +801,7 @@ function initBillingTab(){
     <table class="bill-table"><thead><tr>
       <th>Invoice</th><th>Invoice Date</th><th>Due Date</th><th style="text-align:right">Amount</th><th>Status</th>
     </tr></thead><tbody>${tableRows}</tbody></table>
-    <div class="note">⚡ <strong>Billing gap:</strong> ${fmtINR(budget-totalBilled)} remains unbilled. Raise next invoice before project closure.</div>`;
+    ${(budget-totalBilled)>0?`<div class="note">⚡ <strong>Billing gap:</strong> ${fmtINR(budget-totalBilled)} remains unbilled out of ${fmtINR(budget)} contract. Raise next invoice before project closure.</div>`:`<div class="note" style="background:rgba(22,163,74,.06);border-color:rgba(22,163,74,.2);color:var(--green)">✓ Fully billed — ${fmtINR(totalBilled)} raised against ${fmtINR(budget)} contract.</div>`}`;
 
   // RAB chart + expenses
   const rabLabels=D.billing.map(r=>get(r,'INVOICE NO'));
@@ -801,12 +813,20 @@ function initBillingTab(){
     return '#f59e0b';
   });
 
-  let expHtml='';
+  // Group expenses by CATEGORY
+  const expByCategory={};
   let totalExp=0;
   D.expenses.forEach(r=>{
     const amt=parseFloat(get(r,'AMOUNT (INR)'))||0;
+    const cat=String(get(r,'CATEGORY')||'Other').trim()||'Other';
+    if(!expByCategory[cat]) expByCategory[cat]={total:0,count:0};
+    expByCategory[cat].total+=amt;
+    expByCategory[cat].count++;
     totalExp+=amt;
-    expHtml+=`<div class="exp-row"><div><div class="exp-name">${get(r,'DESCRIPTION')||'Expense'}</div><div class="exp-cat">${get(r,'CATEGORY')}</div></div><div class="exp-amt">${fmtINRFull(amt)}</div></div>`;
+  });
+  let expHtml='';
+  Object.entries(expByCategory).forEach(([cat,{total,count}])=>{
+    expHtml+=`<div class="exp-row"><div><div class="exp-name">${cat}</div><div class="exp-cat">${count} entr${count===1?'y':'ies'}</div></div><div class="exp-amt">${fmtINRFull(total)}</div></div>`;
   });
   const cashGap=totalCollected-totalExp;
 
