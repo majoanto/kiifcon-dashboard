@@ -178,7 +178,7 @@ main{padding:28px 32px;max-width:1400px;margin:0 auto;position:relative;z-index:
       <div class="drop-text">Drop your Excel file here</div>
       <div class="drop-sub">or click to browse · .xlsx / .xls</div>
     </div>
-    <div class="upload-badge">⚡ Powered by AI · Data stays in your browser · Never uploaded</div>
+    <div class="upload-badge">🔒 Data stays in your browser · Never uploaded to any server</div>
     <div id="statusMsg"></div>
     <div id="progressBar"><div id="progressFill"></div></div>
   </div>
@@ -367,16 +367,49 @@ async function handleFile(file){
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 function resetToUpload(){
-  // destroy charts
+  // 1. Destroy all charts
   Object.values(_charts).forEach(c=>{try{c.destroy();}catch(e){}});
   _charts={};
+
+  // 2. Clear all data
+  D={};
+
+  // 3. Reset all tab init flags so they re-render fresh on next upload
+  _phaseTabInit=false;
+  _billingInit=false;
+  _issuesInit=false;
+  _teamInit=false;
+
+  // 4. Clear all rendered tab content
+  document.getElementById('kpiGrid').innerHTML='';
+  document.getElementById('phaseCard').innerHTML='';
+  document.getElementById('rightCol').innerHTML='';
+  document.getElementById('phaseProgressCard').innerHTML='';
+  document.getElementById('phaseDetailCard').innerHTML='';
+  document.getElementById('ganttCard').innerHTML='';
+  document.getElementById('billingKpi').innerHTML='';
+  document.getElementById('invoiceCard').innerHTML='';
+  document.getElementById('billingRight').innerHTML='';
+  document.getElementById('issuesCard').innerHTML='';
+  document.getElementById('teamCard').innerHTML='';
+
+  // 5. Reset header
+  document.getElementById('hdrTitle').textContent='PMC Dashboard';
+  document.getElementById('hdrSub').textContent='KIIFCON';
+  document.getElementById('countdownBox').style.display='none';
+  document.getElementById('days').textContent='—';
+  document.getElementById('billingBadge').style.display='none';
+  document.getElementById('issuesBadge').style.display='none';
+
+  // 6. Reset UI
   document.getElementById('dashboard').style.display='none';
   document.getElementById('uploadScreen').style.display='flex';
   document.getElementById('progressBar').style.display='none';
   document.getElementById('progressFill').style.width='0';
   document.getElementById('statusMsg').textContent='';
   fileInput.value='';
-  // reset tab panels
+
+  // 7. Reset tabs
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-overview').classList.add('active');
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.remove('active');if(i===0)b.classList.add('active');});
